@@ -1,0 +1,6 @@
+/settings.json
+generated_files/
+__pycache__/
+.venv/
+*.jpg
+*.png

@@ -1,0 +1,1 @@
+cmd.exe /k "C:\Users\tvten\Programming\DrawingMachine\thepathmaker-x64\linkern.exe" -o stipple.cyc stipple.tsp

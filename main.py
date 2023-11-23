@@ -42,6 +42,7 @@ output_steps_path = f"{GENERATED_FILES}\{OUTPUT_STEPS_TXT}"
 
 SETTINGS = "settings.json"
 
+# Used only for displaying the machine on the canvas, doesn't affect coordinates
 IMAGE_OFFSET = (100, 100)
 
 DEFAULT_SETTINGS = {
@@ -57,6 +58,7 @@ DEFAULT_SETTINGS = {
 
 settings = None
 
+# Canvas that displays the machine configuration
 class ConfigurationCanvas(QWidget):
     def __init__(self):
         super().__init__()
@@ -109,6 +111,7 @@ class ConfigurationCanvas(QWidget):
         global settings
         settings = self.settings
 
+    # Mouse events for moving the image around and zooming in
     def wheelEvent(self, event):
         # Zoom in/out with the mouse wheel
         zoom_factor = 1.1 if event.angleDelta().y() > 0 else 1 / 1.1
@@ -131,7 +134,7 @@ class ConfigurationCanvas(QWidget):
         if event.button() == Qt.LeftButton:
             self.dragging = False
 
-
+# Canvas that displays the image being processed
 class ProcessCanvas(QWidget):
     def __init__(self):
         super().__init__()
@@ -150,6 +153,7 @@ class ProcessCanvas(QWidget):
         self.processedImage = None
     
     def paintEvent(self, event):
+        # QTs function, updates the canvas
         if self.inputImage != None:
             painter = QPainter(self)
             transform = QTransform()
@@ -159,6 +163,7 @@ class ProcessCanvas(QWidget):
             painter.drawPixmap(0, 0, QPixmap.fromImage(self.inputImage))
 
     def quantize_grayscale_image(self):
+        # Sets the grayscale image colour range to <num_colors> - so instead of 255 colour values it only has <num_colors> amount
         num_colors = 10
         scaling_factor = 255 / (num_colors-1)
 
@@ -181,6 +186,7 @@ class ProcessCanvas(QWidget):
         self.update()
     
     def dither(self):
+        # Dithers the image, turns colour image into black and white
         image = Image.fromqpixmap(self.inputImage)
         jpg_image = Image.new("RGB", image.size, "white")
         jpg_image.paste(image, (0, 0), image)
@@ -195,6 +201,7 @@ class ProcessCanvas(QWidget):
         self.update()
     
     def makePath(self):
+        # Converts the output of linkern program to usable files for this program
         linker_result = self.linkern()
         
         print("Return Code:", linker_result.returncode)
@@ -209,12 +216,16 @@ class ProcessCanvas(QWidget):
             self.update()
     
     def linkern(self):
+        # Runs the linkern program - tsp - finds the shortest path between all the points
         linker_command = f"thepathmaker-x64\linkern.exe -o {cyc_path} {tsp_path}"
         linker_result = subprocess.run(linker_command, shell=True, check=True, text=True)
 
         return linker_result
 
     def wave(self):
+        # Converts the image to waves
+
+        # Range of wave values: 0 = horizontal line, max = dense wave - hight amplitude and frequency
         scaled_colour_range = 10
         pixel_wave_size = 20
 
@@ -235,26 +246,31 @@ class ProcessCanvas(QWidget):
         for y in range(height):
             for x in range(width):
                 n_x = x
+                # Every other y level needs to start from the end so the other of the horizontal lines is: left-right-right-left...
                 if y % 2 != 0:
                     n_x = width - 1 - x
                 amplitude = 0
                 frequency = 0
 
                 pixels[y, n_x] = round(pixels[y, n_x]/25.5)
+                # If the pixel value is under half of the <scaled_colour_range> only increase the amplitude
                 if pixels[y, n_x] < scaled_colour_range/2:
                     frequency = 1
                     amplitude = pixels[y, n_x]
+                # If the pixel value is over half of the <scaled_colour_range> use max amplitude and increase frequency
                 else:
                     frequency = pixels[y, n_x] - scaled_colour_range/2 + 1
                     amplitude = max_amplitude
                 
-                for i in range(20):
+                # For each pixel of the processed image, <pixel_wave_size> x <pixel_wave_size> "super pixel" is created, that holds the wave for that pixel
+                for i in range(pixel_wave_size):
                     n_i = i
                     n_offset = 1
                     if y % 2 != 0:
                         n_i = 0 - i + 20
                         n_offset = -1
-                        
+                    
+                    # Calculate the current pixel coordinates and the next pixel coordinates, so they can be joined with a line
                     x_pos = n_x * pixel_wave_size + n_i
                     y_pos = (y * pixel_wave_size + pixel_wave_size/2) + (np.sin((n_i)/(pixel_wave_size/2)*frequency*np.pi)*amplitude)
 
@@ -271,9 +287,11 @@ class ProcessCanvas(QWidget):
         self.update()
     
     def convertToSteps(self):
+        # Converts the coordinates of the points to steps of the stepper motor based on the <settings>
         toSteps.convertToSteps(settings, output_coordinates_path, output_steps_path)
     
     def removeBg(self):
+        # Removes the background of the image, and replaces it with white background instead of transparent
         image = Image.fromqpixmap(self.inputImage)
         image = remove(image)
 
@@ -291,6 +309,7 @@ class ProcessCanvas(QWidget):
         self.update()
     
     def grayscale(self):
+        # Converts the image to grayscale
         self.inputImage = self.inputImage.convertToFormat(QImage.Format_Grayscale8)
         self.update()
     
@@ -298,6 +317,7 @@ class ProcessCanvas(QWidget):
         self.inputImage = self.inputImage.scaled(int(self.inputImage.width()/self.imageScale), int(self.inputImage.height()/self.imageScale))
         self.update()
 
+    # Mouse events for moving the image around and zooming in
     def wheelEvent(self, event):
         # Zoom in/out with the mouse wheel
         zoom_factor = 1.1 if event.angleDelta().y() > 0 else 1 / 1.1
@@ -320,7 +340,7 @@ class ProcessCanvas(QWidget):
         if event.button() == Qt.LeftButton:
             self.dragging = False
 
-
+# Image processing windows
 class ProcessImage(QWidget):
     def __init__(self):
         super().__init__()
@@ -331,10 +351,9 @@ class ProcessImage(QWidget):
         leftInputs.setStyleSheet("background-color: #EEE;")
         self.imageCanvas = ProcessCanvas()
         
+        # Creating the lables and inputs
         self.btnOpenImage = QPushButton("Open Image")
-
         self.txtScale = QLineEdit("2")
-
         self.btnRotate90 = QPushButton("Rotate")
         self.btnScale = QPushButton("Scale")
         self.btnGrayscale = QPushButton("Grayscale")
@@ -345,6 +364,7 @@ class ProcessImage(QWidget):
         self.btnMakePath = QPushButton("Make Path")
         self.btnConvertToSteps = QPushButton("Convert to steps")
 
+        # Connecting the inputs to their functions
         self.btnOpenImage.clicked.connect(self.openImage)
         self.btnRotate90.clicked.connect(self.imageCanvas.rotate90)
         self.btnScale.clicked.connect(self.scaleImage)
@@ -358,6 +378,7 @@ class ProcessImage(QWidget):
 
         self.vertical_spacer = QSpacerItem(0, 20, QSizePolicy.Fixed, QSizePolicy.Expanding)
 
+        # Adding the lables and inputs to the layout
         lytInputs = QGridLayout()
         lytInputs.addWidget(self.btnOpenImage, 0, 0, 1, 2)
         lytInputs.addWidget(self.btnScale, 1, 0)
@@ -388,12 +409,14 @@ class ProcessImage(QWidget):
         self.imageCanvas.scale()
 
     def openImage(self):
+        # Opens the windows for opening the image
         options = QFileDialog.Options()
-        options |= QFileDialog.ReadOnly  # Optional: Set this to allow read-only access
+        options |= QFileDialog.ReadOnly
         fileFilter = "Images (*.png *.jpg *.jpeg *.bmp)"
         self.inputImage, _ = QFileDialog.getOpenFileName(self, "Open Image File", "", fileFilter, options=options)
         self.imageCanvas.loadImage(self.inputImage)
 
+# Drawing machine configuration window
 class ConfigureMachine(QWidget):
     def __init__(self):
         super().__init__()
@@ -409,6 +432,7 @@ class ConfigureMachine(QWidget):
         global settings
         settings = self.settings
         
+        # Creating the lables and inputs
         self.lblBeltToothDistance = QLabel("Belt tooth distance")
         self.txtBeltToothDistance = QLineEdit()
 
@@ -444,6 +468,7 @@ class ConfigureMachine(QWidget):
 
         self.vertical_spacer = QSpacerItem(0, 20, QSizePolicy.Fixed, QSizePolicy.Expanding)
 
+        # Adding the lables and inputs to the layout
         lytInputs = QGridLayout()
         lytInputs.addWidget(self.lblBeltToothDistance, 0, 0)
         lytInputs.addWidget(self.txtBeltToothDistance, 0, 1)
@@ -479,6 +504,7 @@ class ConfigureMachine(QWidget):
 
         self.setLayout(lytTabConfigureMachine)
 
+        # Connecting the inputs to their functions
         self.txtPaperOffset.textChanged.connect(self.processSettings)
         self.txtMotorDist.textChanged.connect(self.processSettings)
         self.txtPaperDimenions1.textChanged.connect(self.processSettings)
@@ -492,6 +518,7 @@ class ConfigureMachine(QWidget):
         self.processSettings()
 
     def processSettings(self):
+        # Sets the settings to the values of the input fields
         self.settings["beltToothDistance"] = int(self.txtBeltToothDistance.text())
         self.settings["toothOngear"] = int(self.txtToothOnGear.text())
         self.settings["stepsPerRev"] = int(self.txtStepsPerRev.text())
@@ -507,6 +534,7 @@ class ConfigureMachine(QWidget):
         settings = self.settings
 
     def setValuesInput(self, vals):
+        # Sets the input fields to the <vals> values
         self.txtBeltToothDistance.setText(str(vals["beltToothDistance"]))
         self.txtToothOnGear.setText(str(vals["toothOngear"]))
         self.txtStepsPerRev.setText(str(vals["stepsPerRev"]))
@@ -520,7 +548,6 @@ class ConfigureMachine(QWidget):
         self.txtPaperOffset.setText(str(vals["paperOffset"]))
 
     def loadDefaultSettings(self):
-        # print("loaded defaults:\n", DEFAULT_SETTINGS.copy())
         self.setValuesInput(DEFAULT_SETTINGS.copy())
         self.processSettings()
         self.rightCanvas.setSettings(self.settings)
@@ -529,17 +556,19 @@ class ConfigureMachine(QWidget):
         settings = self.settings
     
     def saveSettings(self):
+        # Saves settings to <SETTINGS> file
         with open(SETTINGS, "w") as settings_file:
             json.dump(self.settings, settings_file)
-            # print("saved:\n", self.settings)
     
     def loadSettings(self):
+        # Loads settings if the <SETTINGS> file exists
         if os.path.exists(SETTINGS):
             with open(SETTINGS, "r") as settings_file:
                 self.settings = json.load(settings_file)
                 global settings
                 settings = self.settings
-                # print("loaded saved:\n", self.settings)
+
+        # Otherwise loads default settings
         else:
             self.loadDefaultSettings()
 

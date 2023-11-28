@@ -53,6 +53,7 @@ def apply_jarvis_judice_ninke_dithering(image, tsp_path):
     f.close()
 
     output_image = Image.fromarray(output_pixels)
+    output_image = output_image.convert("RGBA")
     # print(count)
     return output_image
 

@@ -194,14 +194,10 @@ class ProcessCanvas(QWidget):
         if self.inputImage == None: return
         
         image = Image.fromqpixmap(self.inputImage)
-        jpg_image = Image.new("RGB", image.size, "white")
-        jpg_image.paste(image, (0, 0), image)
-        image = jpg_image
         
         image = dithering.apply_jarvis_judice_ninke_dithering(image, tsp_path)
 
-        image = image.convert("RGBA")
-        data = image.tobytes("raw","RGBA")
+        data = image.tobytes()
 
         self.inputImage = QImage(data, image.size[0], image.size[1], QImage.Format_RGBA8888)
         self.update()

@@ -106,7 +106,7 @@ class ConfigurationCanvas(QWidget):
 
         painter.drawRect(paperOffsetCalculated[0]+IMAGE_OFFSET[0], paperOffsetCalculated[1]+IMAGE_OFFSET[1],  self.settings["paperSize"][0],   self.settings["paperSize"][1])
 
-    def setSettings(self, settings_):
+    def setSettings(self, settings_: dict):
         self.settings = settings_
         global settings
         settings = self.settings
@@ -152,17 +152,19 @@ class ProcessCanvas(QWidget):
         self.inputImage = None
         self.processedImage = None
     
-    def paintEvent(self, event):
+    def paintEvent(self, event) -> None:
         # QTs function, updates the canvas
-        if self.inputImage != None:
-            painter = QPainter(self)
-            transform = QTransform()
-            transform.scale(self.zoomScale, self.zoomScale)
-            transform.translate(self.cur_pos.x(), self.cur_pos.y())
-            painter.setTransform(transform)
-            painter.drawPixmap(0, 0, QPixmap.fromImage(self.inputImage))
+        if self.inputImage == None: return
 
-    def quantize_grayscale_image(self):
+        painter = QPainter(self)
+        transform = QTransform()
+        transform.scale(self.zoomScale, self.zoomScale)
+        transform.translate(self.cur_pos.x(), self.cur_pos.y())
+        painter.setTransform(transform)
+        painter.drawPixmap(0, 0, QPixmap.fromImage(self.inputImage))
+
+    def quantize_grayscale_image(self) -> None:
+        if self.inputImage == None: return
         # Sets the grayscale image colour range to <num_colors> - so instead of 255 colour values it only has <num_colors> amount
         num_colors = 10
         scaling_factor = 255 / (num_colors-1)
@@ -181,12 +183,16 @@ class ProcessCanvas(QWidget):
         self.inputImage = quantized_image
         self.update()
         
-    def loadImage(self, path):
+    def loadImage(self, path: str) -> None:
+        if not os.path.exists(path): return
+
         self.inputImage = QImage(path)
         self.update()
     
-    def dither(self):
+    def dither(self) -> None:
         # Dithers the image, turns colour image into black and white
+        if self.inputImage == None: return
+        
         image = Image.fromqpixmap(self.inputImage)
         jpg_image = Image.new("RGB", image.size, "white")
         jpg_image.paste(image, (0, 0), image)
@@ -200,11 +206,10 @@ class ProcessCanvas(QWidget):
         self.inputImage = QImage(data, image.size[0], image.size[1], QImage.Format_RGBA8888)
         self.update()
     
-    def makePath(self):
+    def makePath(self) -> None:
         # Converts the output of linkern program to usable files for this program
         linker_result = self.linkern()
         
-        print("Return Code:", linker_result.returncode)
         if linker_result.returncode == 0:
 
             image = pathMaker.pathMaker(tsp_path, cyc_path, output_coordinates_path)
@@ -215,15 +220,16 @@ class ProcessCanvas(QWidget):
             self.inputImage = QImage(data, image.size[0], image.size[1], QImage.Format_RGBA8888)
             self.update()
     
-    def linkern(self):
+    def linkern(self) -> subprocess.CompletedProcess:
         # Runs the linkern program - tsp - finds the shortest path between all the points
         linker_command = f"thepathmaker-x64\linkern.exe -o {cyc_path} {tsp_path}"
         linker_result = subprocess.run(linker_command, shell=True, check=True, text=True)
 
         return linker_result
 
-    def wave(self):
+    def wave(self) -> None:
         # Converts the image to waves
+        if self.inputImage == None: return
 
         # Range of wave values: 0 = horizontal line, max = dense wave - hight amplitude and frequency
         scaled_colour_range = 10
@@ -286,12 +292,15 @@ class ProcessCanvas(QWidget):
         self.inputImage = QImage(data, image.size[0], image.size[1], QImage.Format_RGBA8888)
         self.update()
     
-    def convertToSteps(self):
+    def convertToSteps(self) -> None:
         # Converts the coordinates of the points to steps of the stepper motor based on the <settings>
+        if not os.path.exists(output_coordinates_path): return
         toSteps.convertToSteps(settings, output_coordinates_path, output_steps_path)
     
-    def removeBg(self):
+    def removeBg(self) -> None:
         # Removes the background of the image, and replaces it with white background instead of transparent
+        if self.inputImage == None: return
+
         image = Image.fromqpixmap(self.inputImage)
         image = remove(image)
 
@@ -304,16 +313,22 @@ class ProcessCanvas(QWidget):
         self.inputImage = QImage(data, image.size[0], image.size[1], QImage.Format_RGBA8888)
         self.update()
     
-    def rotate90(self):
+    def rotate90(self) -> None:
+        if self.inputImage == None: return
+
         self.inputImage = self.inputImage.transformed(QTransform().rotate(90))
         self.update()
     
-    def grayscale(self):
+    def grayscale(self) -> None:
         # Converts the image to grayscale
+        if self.inputImage == None: return
+
         self.inputImage = self.inputImage.convertToFormat(QImage.Format_Grayscale8)
         self.update()
     
-    def scale(self):
+    def scale(self) -> None:
+        if self.inputImage == None: return
+
         self.inputImage = self.inputImage.scaled(int(self.inputImage.width()/self.imageScale), int(self.inputImage.height()/self.imageScale))
         self.update()
 
@@ -346,7 +361,7 @@ class ProcessImage(QWidget):
         super().__init__()
         self.setupUI()
     
-    def setupUI(self):
+    def setupUI(self) -> None:
         leftInputs = QWidget()
         leftInputs.setStyleSheet("background-color: #EEE;")
         self.imageCanvas = ProcessCanvas()
@@ -404,11 +419,13 @@ class ProcessImage(QWidget):
 
         self.setLayout(lytTabProcessImage)
     
-    def scaleImage(self):
+    def scaleImage(self) -> None:
+        if self.inputImage == None: return
+
         self.imageCanvas.imageScale = float(self.txtScale.text())
         self.imageCanvas.scale()
 
-    def openImage(self):
+    def openImage(self) -> None:
         # Opens the windows for opening the image
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
@@ -422,7 +439,7 @@ class ConfigureMachine(QWidget):
         super().__init__()
         self.setupUi()
 
-    def setupUi(self):
+    def setupUi(self) -> None:
         leftInputs = QWidget()
         leftInputs.setStyleSheet("background-color: #EEE;")
         
@@ -517,7 +534,7 @@ class ConfigureMachine(QWidget):
         
         self.processSettings()
 
-    def processSettings(self):
+    def processSettings(self) -> None:
         # Sets the settings to the values of the input fields
         self.settings["beltToothDistance"] = int(self.txtBeltToothDistance.text())
         self.settings["toothOngear"] = int(self.txtToothOnGear.text())
@@ -533,8 +550,10 @@ class ConfigureMachine(QWidget):
         global settings
         settings = self.settings
 
-    def setValuesInput(self, vals):
+    def setValuesInput(self, vals: dict) -> None:
         # Sets the input fields to the <vals> values
+        if vals == None: return
+
         self.txtBeltToothDistance.setText(str(vals["beltToothDistance"]))
         self.txtToothOnGear.setText(str(vals["toothOngear"]))
         self.txtStepsPerRev.setText(str(vals["stepsPerRev"]))
@@ -547,7 +566,8 @@ class ConfigureMachine(QWidget):
         self.txtPaperDimenions2.setText(str(vals["paperSize"][1]))
         self.txtPaperOffset.setText(str(vals["paperOffset"]))
 
-    def loadDefaultSettings(self):
+    def loadDefaultSettings(self) -> None:
+
         self.setValuesInput(DEFAULT_SETTINGS.copy())
         self.processSettings()
         self.rightCanvas.setSettings(self.settings)
@@ -555,22 +575,20 @@ class ConfigureMachine(QWidget):
         global settings
         settings = self.settings
     
-    def saveSettings(self):
+    def saveSettings(self) -> None:
         # Saves settings to <SETTINGS> file
         with open(SETTINGS, "w") as settings_file:
             json.dump(self.settings, settings_file)
     
-    def loadSettings(self):
+    def loadSettings(self) -> None:
         # Loads settings if the <SETTINGS> file exists
-        if os.path.exists(SETTINGS):
-            with open(SETTINGS, "r") as settings_file:
-                self.settings = json.load(settings_file)
-                global settings
-                settings = self.settings
-
         # Otherwise loads default settings
-        else:
-            self.loadDefaultSettings()
+        if not os.path.exists(SETTINGS): self.loadDefaultSettings()
+
+        with open(SETTINGS, "r") as settings_file:
+            self.settings = json.load(settings_file)
+            global settings
+            settings = self.settings
 
 
 class MyWindow(QMainWindow):

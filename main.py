@@ -23,10 +23,11 @@ from PyQt5.QtWidgets import (
     QSizePolicy, 
     QPushButton, 
     QFileDialog, 
+    QTextEdit, 
     )
 
 from PyQt5.QtGui import QPainter, QPen, QPixmap, QTransform, QImage, QColor
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import Qt, QPoint, QThread, pyqtSignal
 
 GENERATED_FILES = "generated_files"
 
@@ -57,6 +58,31 @@ DEFAULT_SETTINGS = {
 }
 
 settings = None
+
+class WorkerThread(QThread):
+    update_signal = pyqtSignal(str)
+    finish_signal = pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+        self.result = None
+
+    def run(self):
+        # Run your lengthy operation here
+        linker_command = f"thepathmaker-x64\linkern.exe -o {cyc_path} {tsp_path}"
+        linker_result = subprocess.Popen(linker_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+        
+        while linker_result.poll() is None:
+            line = linker_result.stdout.readline()
+            self.update_signal.emit(line)
+
+        self.result = linker_result
+
+        # Emit a signal with the output
+        self.finish_signal.emit()
+    
+    def getResult(self) -> subprocess.CompletedProcess:
+        return self.result
 
 # Canvas that displays the machine configuration
 class ConfigurationCanvas(QWidget):
@@ -202,9 +228,9 @@ class ProcessCanvas(QWidget):
         self.inputImage = QImage(data, image.size[0], image.size[1], QImage.Format_RGBA8888)
         self.update()
     
-    def makePath(self) -> None:
+    def makePath(self, linker_result: subprocess.CompletedProcess) -> None:
         # Converts the output of linkern program to usable files for this program
-        linker_result = self.linkern()
+        # linker_result = self.linkern()
         
         if linker_result.returncode == 0:
 
@@ -375,6 +401,10 @@ class ProcessImage(QWidget):
         self.btnMakePath = QPushButton("Make Path")
         self.btnConvertToSteps = QPushButton("Convert to steps")
 
+        self.lblOutput = QLabel("Output")
+        self.output_text_edit = QTextEdit()
+        self.output_text_edit.setReadOnly(True)
+
         # Connecting the inputs to their functions
         self.btnOpenImage.clicked.connect(self.openImage)
         self.btnRotate90.clicked.connect(self.imageCanvas.rotate90)
@@ -384,7 +414,7 @@ class ProcessImage(QWidget):
         self.btnWave.clicked.connect(self.imageCanvas.wave)
         self.btnRemoveBG.clicked.connect(self.imageCanvas.removeBg)
         self.btnColourScale.clicked.connect(self.imageCanvas.quantize_grayscale_image)
-        self.btnMakePath.clicked.connect(self.imageCanvas.makePath)
+        self.btnMakePath.clicked.connect(self.start_lengthy_operation)
         self.btnConvertToSteps.clicked.connect(self.imageCanvas.convertToSteps)
 
         self.vertical_spacer = QSpacerItem(0, 20, QSizePolicy.Fixed, QSizePolicy.Expanding)
@@ -402,6 +432,9 @@ class ProcessImage(QWidget):
         lytInputs.addWidget(self.btnRemoveBG, 4, 1)
         lytInputs.addWidget(self.btnMakePath, 5, 0)
         lytInputs.addWidget(self.btnConvertToSteps, 5, 1)
+        
+        lytInputs.addWidget(self.lblOutput, 6, 0)
+        lytInputs.addWidget(self.output_text_edit, 7, 0, 1, 2)
 
         lytInputs.addItem(self.vertical_spacer)
 
@@ -413,7 +446,23 @@ class ProcessImage(QWidget):
         lytTabProcessImage.setStretchFactor(leftInputs, 2)
         lytTabProcessImage.setStretchFactor(self.imageCanvas, 7)
 
+        
+        self.worker_thread = WorkerThread()
+        self.worker_thread.update_signal.connect(self.update_output)
+        self.worker_thread.finish_signal.connect(self.finish_output)
+
         self.setLayout(lytTabProcessImage)
+    
+    
+    def start_lengthy_operation(self):
+        self.worker_thread.start()
+
+    def update_output(self, output):
+        self.output_text_edit.append(output)
+
+    def finish_output(self):
+        result = self.worker_thread.getResult()
+        self.imageCanvas.makePath(result)
     
     def scaleImage(self) -> None:
         if self.inputImage == None: return

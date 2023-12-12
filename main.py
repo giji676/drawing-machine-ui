@@ -84,12 +84,12 @@ class WorkerThread(QThread):
         # Called by QThread automatically when WorkerThread.start() is called
         if self.function_type == FunctionTypeEnum.WAVE:
             self.image = self.wave(self.image)
-            self.finish_signal.emit()
             self.image_signal.emit()
         elif self.function_type == FunctionTypeEnum.LINKERN:
             self.linkern()
         elif self.function_type == FunctionTypeEnum.DITHER:
-            pass
+            self.image = self.dither(self.image)
+            self.image_signal.emit()
 
     def wave(self,image: Image) -> Image:
         # Converts the image to waves
@@ -152,7 +152,7 @@ class WorkerThread(QThread):
 
                     draw.line(((x_pos, y_pos), (next_x_pos, next_y_pos)), fill=(0,0,0))
         f.close()
-        self.result = f"Total time: {time.time() - start_time}"
+        self.result = f"\nTotal run time: {time.time() - start_time} seconds\n"
 
         self.finish_signal.emit()
 
@@ -174,6 +174,14 @@ class WorkerThread(QThread):
 
         # Emit a signal with the output
         self.finish_signal.emit()
+
+    def dither(self, image) -> Image:
+        start_time = time.time()
+        self.update_signal.emit("Starting dithering")
+        image = dithering.apply_jarvis_judice_ninke_dithering(image, tsp_path)
+        self.result = f"\nTotal run time: {time.time() - start_time} seconds\n"
+        self.finish_signal.emit()
+        return image
 
     def getResult(self) -> subprocess.CompletedProcess:
         return self.result
@@ -435,7 +443,7 @@ class ProcessImage(QWidget):
         self.btnRotate90.clicked.connect(self.imageCanvas.rotate90)
         self.btnScale.clicked.connect(self.scaleImage)
         self.btnGrayscale.clicked.connect(self.imageCanvas.grayscale)
-        self.btnDither.clicked.connect(self.imageCanvas.dither)
+        self.btnDither.clicked.connect(self.start_dither)
         self.btnWave.clicked.connect(self.start_wave)
         self.btnRemoveBG.clicked.connect(self.imageCanvas.removeBg)
         self.btnColourScale.clicked.connect(self.imageCanvas.quantize_grayscale_image)
@@ -490,6 +498,14 @@ class ProcessImage(QWidget):
         self.worker_thread.image = image
         self.worker_thread.start()
 
+    def start_dither(self):
+        image = Image.fromqpixmap(self.imageCanvas.inputImage).convert('L')
+        image = ImageOps.invert(image)
+
+        self.worker_thread.function_type = FunctionTypeEnum.DITHER
+        self.worker_thread.image = image
+        self.worker_thread.start()
+
     def update_output(self, output):
         self.output_text_edit.append(output)
 
@@ -497,9 +513,12 @@ class ProcessImage(QWidget):
         if self.worker_thread.function_type == FunctionTypeEnum.LINKERN:
             result = self.worker_thread.getResult()
             self.imageCanvas.makePath(result)
+            return
+        result = self.worker_thread.getResult()
+        self.output_text_edit.append(result)
 
     def image_output(self):
-        image =  self.worker_thread.image
+        image = self.worker_thread.image
         image = image.convert("RGBA")
         data = image.tobytes("raw","RGBA")
 

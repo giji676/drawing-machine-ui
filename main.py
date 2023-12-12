@@ -2,6 +2,7 @@ import os
 import sys
 import math
 import json
+import time
 import dithering
 import subprocess
 import pathMaker
@@ -60,31 +61,103 @@ DEFAULT_SETTINGS = {
 settings = None
 
 
+class FunctionTypeEnum:
+    WAVE = 1
+    LINKERN = 2
+    DITHER = 3
+
+
 class WorkerThread(QThread):
     # Runs lengthy functions on a separate "worker thread" so the gui doesn't freeze
     # function_signal is "emited" to set the right function to run (eg. linkern, wave, dithering)
-    function_signal = pyqtSignal(str)
     update_signal = pyqtSignal(str)
     finish_signal = pyqtSignal()
-
-    function_type = None
+    image_signal = pyqtSignal()
 
     def __init__(self):
         super().__init__()
         self.result = None
+        self.image = None
+        self.function_type = None
 
     def run(self):
         # Called by QThread automatically when WorkerThread.start() is called
-        if self.function_type == "wave":
-            pass
-        elif self.function_type == "linkern":
+        if self.function_type == FunctionTypeEnum.WAVE:
+            self.image = self.wave(self.image)
+            self.finish_signal.emit()
+            self.image_signal.emit()
+        elif self.function_type == FunctionTypeEnum.LINKERN:
             self.linkern()
-        elif self.function_type == "dither":
+        elif self.function_type == FunctionTypeEnum.DITHER:
             pass
 
-    def update_function_type(self, fn_type):
-        if fn_type:
-            self.function_type = fn_type
+    def wave(self,image: Image) -> Image:
+        # Converts the image to waves
+        if not image:
+            return None
+
+        # Range of wave values: 0 = horizontal line, max = dense wave - hight amplitude and frequency
+        scaled_colour_range = 10
+        pixel_wave_size = 20
+
+        max_amplitude = pixel_wave_size/2
+
+        pixels = np.array(image)
+
+        height, width = pixels.shape
+        new_height, new_width = height*20, width*20
+
+        image = Image.new("RGB", (new_width,new_height), color="white")
+        draw = ImageDraw.Draw(image)
+
+        f = open(output_coordinates_path, "w")
+
+        self.update_signal.emit("Starting conversion to wave")
+        start_time = time.time()
+        for y in range(height):
+            for x in range(width):
+                self.update_signal.emit(f"{str((y*width)+x)}/{str(height*width)}, {str(time.time() - start_time)}")
+                n_x = x
+                # Every other y level needs to start from the end so the other of the horizontal lines is: left-right-right-left...
+                if y % 2 != 0:
+                    n_x = width - 1 - x
+                amplitude = 0
+                frequency = 0
+
+                pixels[y, n_x] = round(pixels[y, n_x]/25.5)
+                # If the pixel value is under half of the <scaled_colour_range> only increase the amplitude
+                if pixels[y, n_x] < scaled_colour_range/2:
+                    frequency = 1
+                    amplitude = pixels[y, n_x]
+                # If the pixel value is over half of the <scaled_colour_range> use max amplitude and increase frequency
+                else:
+                    frequency = pixels[y, n_x] - scaled_colour_range/2 + 1
+                    amplitude = max_amplitude
+
+                # For each pixel of the processed image, <pixel_wave_size> x <pixel_wave_size> "super pixel" is created, that holds the wave for that pixel
+                for i in range(pixel_wave_size):
+                    n_i = i
+                    n_offset = 1
+                    if y % 2 != 0:
+                        n_i = 0 - i + 20
+                        n_offset = -1
+
+                    # Calculate the current pixel coordinates and the next pixel coordinates, so they can be joined with a line
+                    x_pos = n_x * pixel_wave_size + n_i
+                    y_pos = (y * pixel_wave_size + pixel_wave_size/2) + (np.sin((n_i)/(pixel_wave_size/2)*frequency*np.pi)*amplitude)
+
+                    next_x_pos = n_x * pixel_wave_size + n_i + n_offset
+                    next_y_pos = (y * pixel_wave_size + pixel_wave_size/2) + (np.sin((n_i+n_offset)/(pixel_wave_size/2)*frequency*np.pi)*amplitude)
+                    f.write(str(x_pos) + " " + str(round(y_pos)) + "\n")
+
+                    draw.line(((x_pos, y_pos), (next_x_pos, next_y_pos)), fill=(0,0,0))
+        f.close()
+        self.result = f"Total time: {time.time() - start_time}"
+
+        self.finish_signal.emit()
+
+        return image
+
 
     def linkern(self) -> None:
         # Runs the linkern.exe program
@@ -95,7 +168,7 @@ class WorkerThread(QThread):
         while linker_result.poll() is None:
             line = linker_result.stdout.readline()
             self.update_signal.emit(line)
-        
+
         # Finished result/output emited through finish_signal
         self.result = linker_result
 
@@ -273,65 +346,6 @@ class ProcessCanvas(QWidget):
         return linker_result
 
     def wave(self) -> None:
-        # Converts the image to waves
-        if self.inputImage == None: return
-
-        # Range of wave values: 0 = horizontal line, max = dense wave - hight amplitude and frequency
-        scaled_colour_range = 10
-        pixel_wave_size = 20
-
-        image = Image.fromqpixmap(self.inputImage).convert('L')
-        image = ImageOps.invert(image)
-
-        max_amplitude = pixel_wave_size/2
-
-        pixels = np.array(image)
-
-        height, width = pixels.shape
-        new_height, new_width = height*20, width*20
-
-        image = Image.new("RGB", (new_width,new_height), color="white")
-        draw = ImageDraw.Draw(image)
-
-        f = open(output_coordinates_path, "w")
-        for y in range(height):
-            for x in range(width):
-                n_x = x
-                # Every other y level needs to start from the end so the other of the horizontal lines is: left-right-right-left...
-                if y % 2 != 0:
-                    n_x = width - 1 - x
-                amplitude = 0
-                frequency = 0
-
-                pixels[y, n_x] = round(pixels[y, n_x]/25.5)
-                # If the pixel value is under half of the <scaled_colour_range> only increase the amplitude
-                if pixels[y, n_x] < scaled_colour_range/2:
-                    frequency = 1
-                    amplitude = pixels[y, n_x]
-                # If the pixel value is over half of the <scaled_colour_range> use max amplitude and increase frequency
-                else:
-                    frequency = pixels[y, n_x] - scaled_colour_range/2 + 1
-                    amplitude = max_amplitude
-
-                # For each pixel of the processed image, <pixel_wave_size> x <pixel_wave_size> "super pixel" is created, that holds the wave for that pixel
-                for i in range(pixel_wave_size):
-                    n_i = i
-                    n_offset = 1
-                    if y % 2 != 0:
-                        n_i = 0 - i + 20
-                        n_offset = -1
-
-                    # Calculate the current pixel coordinates and the next pixel coordinates, so they can be joined with a line
-                    x_pos = n_x * pixel_wave_size + n_i
-                    y_pos = (y * pixel_wave_size + pixel_wave_size/2) + (np.sin((n_i)/(pixel_wave_size/2)*frequency*np.pi)*amplitude)
-
-                    next_x_pos = n_x * pixel_wave_size + n_i + n_offset
-                    next_y_pos = (y * pixel_wave_size + pixel_wave_size/2) + (np.sin((n_i+n_offset)/(pixel_wave_size/2)*frequency*np.pi)*amplitude)
-                    f.write(str(x_pos) + " " + str(round(y_pos)) + "\n")
-
-                    draw.line(((x_pos, y_pos), (next_x_pos, next_y_pos)), fill=(0,0,0))
-        f.close()
-
         image = image.convert("RGBA")
         data = image.tobytes("raw","RGBA")
         self.inputImage = QImage(data, image.size[0], image.size[1], QImage.Format_RGBA8888)
@@ -435,10 +449,10 @@ class ProcessImage(QWidget):
         self.btnScale.clicked.connect(self.scaleImage)
         self.btnGrayscale.clicked.connect(self.imageCanvas.grayscale)
         self.btnDither.clicked.connect(self.imageCanvas.dither)
-        self.btnWave.clicked.connect(self.imageCanvas.wave)
+        self.btnWave.clicked.connect(self.start_wave)
         self.btnRemoveBG.clicked.connect(self.imageCanvas.removeBg)
         self.btnColourScale.clicked.connect(self.imageCanvas.quantize_grayscale_image)
-        self.btnMakePath.clicked.connect(self.start_lengthy_operation)
+        self.btnMakePath.clicked.connect(self.start_linkern)
         self.btnConvertToSteps.clicked.connect(self.imageCanvas.convertToSteps)
 
         self.vertical_spacer = QSpacerItem(0, 20, QSizePolicy.Fixed, QSizePolicy.Expanding)
@@ -473,20 +487,37 @@ class ProcessImage(QWidget):
         self.worker_thread = WorkerThread()
         self.worker_thread.update_signal.connect(self.update_output)
         self.worker_thread.finish_signal.connect(self.finish_output)
-        self.worker_thread.function_signal.connect(self.worker_thread.update_function_type)
+        self.worker_thread.image_signal.connect(self.image_output)
 
         self.setLayout(lytTabProcessImage)
 
-    def start_lengthy_operation(self):
-        self.worker_thread.function_signal.emit("linkern")
+    def start_linkern(self):
+        self.worker_thread.function_type = FunctionTypeEnum.LINKERN
+        self.worker_thread.start()
+
+    def start_wave(self):
+        image = Image.fromqpixmap(self.imageCanvas.inputImage).convert('L')
+        image = ImageOps.invert(image)
+
+        self.worker_thread.function_type = FunctionTypeEnum.WAVE
+        self.worker_thread.image = image
         self.worker_thread.start()
 
     def update_output(self, output):
         self.output_text_edit.append(output)
 
     def finish_output(self):
-        result = self.worker_thread.getResult()
-        self.imageCanvas.makePath(result)
+        if self.worker_thread.function_type == FunctionTypeEnum.LINKERN:
+            result = self.worker_thread.getResult()
+            self.imageCanvas.makePath(result)
+
+    def image_output(self):
+        image =  self.worker_thread.image
+        image = image.convert("RGBA")
+        data = image.tobytes("raw","RGBA")
+
+        self.imageCanvas.inputImage = QImage(data, image.size[0], image.size[1], QImage.Format_RGBA8888)
+        self.imageCanvas.update()
 
     def scaleImage(self) -> None:
         if self.inputImage == None: return

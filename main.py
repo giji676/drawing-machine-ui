@@ -338,19 +338,6 @@ class ProcessCanvas(QWidget):
             self.inputImage = QImage(data, image.size[0], image.size[1], QImage.Format_RGBA8888)
             self.update()
 
-    def linkern(self) -> subprocess.CompletedProcess:
-        # Runs the linkern program - tsp - finds the shortest path between all the points
-        linker_command = f"thepathmaker-x64\linkern.exe -o {cyc_path} {tsp_path}"
-        linker_result = subprocess.run(linker_command, shell=True, check=True, text=True)
-
-        return linker_result
-
-    def wave(self) -> None:
-        image = image.convert("RGBA")
-        data = image.tobytes("raw","RGBA")
-        self.inputImage = QImage(data, image.size[0], image.size[1], QImage.Format_RGBA8888)
-        self.update()
-
     def convertToSteps(self) -> None:
         # Converts the coordinates of the points to steps of the stepper motor based on the <settings>
         if not os.path.exists(output_coordinates_path): return

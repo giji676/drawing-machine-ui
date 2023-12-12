@@ -475,10 +475,13 @@ class ProcessImage(QWidget):
         self.setLayout(lytTabProcessImage)
 
     def start_linkern(self):
-        self.worker_thread.function_type = FunctionTypeEnum.LINKERN
-        self.worker_thread.start()
+        if os.path.exists(tsp_path):
+            self.worker_thread.function_type = FunctionTypeEnum.LINKERN
+            self.worker_thread.start()
 
     def start_wave(self):
+        if self.imageCanvas.inputImage == None:
+            return
         image = Image.fromqpixmap(self.imageCanvas.inputImage).convert('L')
         image = ImageOps.invert(image)
 
@@ -487,6 +490,8 @@ class ProcessImage(QWidget):
         self.worker_thread.start()
 
     def start_dither(self):
+        if self.imageCanvas.inputImage == None:
+            return
         image = Image.fromqpixmap(self.imageCanvas.inputImage).convert('L')
         image = ImageOps.invert(image)
 

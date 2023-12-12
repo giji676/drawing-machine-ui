@@ -116,7 +116,7 @@ class WorkerThread(QThread):
         start_time = time.time()
         for y in range(height):
             for x in range(width):
-                self.update_signal.emit(f"{str((y*width)+x)}/{str(height*width)}, {str(time.time() - start_time)}")
+                self.update_signal.emit(f"{str((y*width)+x)}/{str(height*width)}, {str(round(time.time() - start_time, 3))}")
                 n_x = x
                 # Every other y level needs to start from the end so the other of the horizontal lines is: left-right-right-left...
                 if y % 2 != 0:
@@ -152,7 +152,7 @@ class WorkerThread(QThread):
 
                     draw.line(((x_pos, y_pos), (next_x_pos, next_y_pos)), fill=(0,0,0))
         f.close()
-        self.result = f"\nTotal run time: {time.time() - start_time} seconds\n"
+        self.result = f"\nTotal run time: {round(time.time() - start_time, 3)} seconds\n"
 
         self.finish_signal.emit()
 

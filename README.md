@@ -13,7 +13,7 @@ connect the points created by the dithering function using a single continuous l
 
 After the Wave or Linkern function is used, the output is used by toSteps.py to
 turn the coordinate values into steps of the stepper motors on the plotter machine.
-The steps are almost liek GCODE.
+The steps are almost like GCODE.
 
 
 The program also lets the user configure the dimensions and settings of the machine.

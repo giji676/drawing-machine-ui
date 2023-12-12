@@ -436,6 +436,7 @@ class ProcessImage(QWidget):
         self.btnColourScale.clicked.connect(self.imageCanvas.quantize_grayscale_image)
         self.btnMakePath.clicked.connect(self.start_linkern)
         self.btnConvertToSteps.clicked.connect(self.imageCanvas.convertToSteps)
+        self.btnConvertToSteps.setObjectName("testBtn")
 
         self.vertical_spacer = QSpacerItem(0, 20, QSizePolicy.Fixed, QSizePolicy.Expanding)
 
@@ -705,6 +706,9 @@ if __name__ == '__main__':
         os.makedirs(GENERATED_FILES)
 
     app = QApplication(sys.argv)
+    qss = "style.qss"
+    with open(qss, "r") as ss:
+        app.setStyleSheet(ss.read())
     window = MyWindow()
     window.showMaximized()
     sys.exit(app.exec_())

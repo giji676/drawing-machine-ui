@@ -319,19 +319,6 @@ class ProcessCanvas(QWidget):
         self.inputImage = QImage(path)
         self.update()
 
-    def dither(self) -> None:
-        # Dithers the image, turns colour image into black and white
-        if self.inputImage == None: return
-
-        image = Image.fromqpixmap(self.inputImage)
-
-        image = dithering.apply_jarvis_judice_ninke_dithering(image, tsp_path)
-
-        data = image.tobytes()
-
-        self.inputImage = QImage(data, image.size[0], image.size[1], QImage.Format_RGBA8888)
-        self.update()
-
     def makePath(self, linker_result: subprocess.CompletedProcess) -> None:
         # Converts the output of linkern program to usable files for this program
         # linker_result = self.linkern()

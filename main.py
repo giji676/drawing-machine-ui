@@ -519,7 +519,8 @@ class ProcessImage(QWidget):
         self.imageCanvas.update()
 
     def scaleImage(self) -> None:
-        if self.inputImage == None: return
+        if self.imageCanvas.inputImage == None:
+            return
 
         self.imageCanvas.imageScale = float(self.txtScale.text())
         self.imageCanvas.scale()

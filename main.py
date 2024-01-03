@@ -410,6 +410,7 @@ class ProcessImage(QWidget):
 
         # Creating the lables and inputs
         self.btnOpenImage = QPushButton("Open Image")
+        self.btnClearAll = QPushButton("Clear All")
         self.txtScale = QLineEdit("2")
         self.btnRotate90 = QPushButton("Rotate")
         self.btnScale = QPushButton("Scale")
@@ -427,6 +428,7 @@ class ProcessImage(QWidget):
 
         # Connecting the inputs to their functions
         self.btnOpenImage.clicked.connect(self.openImage)
+        self.btnClearAll.clicked.connect(self.clearAll)
         self.btnRotate90.clicked.connect(self.imageCanvas.rotate90)
         self.btnScale.clicked.connect(self.scaleImage)
         self.btnGrayscale.clicked.connect(self.imageCanvas.grayscale)
@@ -442,7 +444,8 @@ class ProcessImage(QWidget):
 
         # Adding the lables and inputs to the layout
         lytInputs = QGridLayout()
-        lytInputs.addWidget(self.btnOpenImage, 0, 0, 1, 2)
+        lytInputs.addWidget(self.btnOpenImage, 0, 0)
+        lytInputs.addWidget(self.btnClearAll, 0, 1)
         lytInputs.addWidget(self.btnScale, 1, 0)
         lytInputs.addWidget(self.txtScale, 1, 1)
         lytInputs.addWidget(self.btnRotate90, 2, 0)
@@ -524,6 +527,11 @@ class ProcessImage(QWidget):
 
         self.imageCanvas.imageScale = float(self.txtScale.text())
         self.imageCanvas.scale()
+
+    def clearAll(self) -> None:
+        self.imageCanvas.inputImage = None
+        self.imageCanvas.update()
+        self.output_text_edit.clear()
 
     def openImage(self) -> None:
         # Opens the windows for opening the image

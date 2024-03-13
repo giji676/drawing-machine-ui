@@ -2,15 +2,16 @@ import numpy as np
 from PIL import Image
 from rembg import remove
 
+
 def apply_jarvis_judice_ninke_dithering(image, tsp_path):
-    grayscale_image = image.convert('L')
-    
+    grayscale_image = image.convert("L")
+
     input_pixels = np.array(grayscale_image)
-    
-    output_image = Image.new('L', grayscale_image.size)
+
+    output_image = Image.new("L", grayscale_image.size)
     output_pixels = np.array(output_image)
     count = 0
-    
+
     f = open(tsp_path, "w")
 
     # Initialize a list to store lines
@@ -32,7 +33,7 @@ def apply_jarvis_judice_ninke_dithering(image, tsp_path):
             output_pixels[y, x] = new_pixel
 
             quant_error = old_pixel - new_pixel
-            
+
             if x < input_pixels.shape[1] - 1:
                 input_pixels[y, x + 1] += quant_error * 7 / 48
                 if x < input_pixels.shape[1] - 2:
@@ -46,7 +47,8 @@ def apply_jarvis_judice_ninke_dithering(image, tsp_path):
                 if x < input_pixels.shape[1] - 2:
                     input_pixels[y + 1, x + 2] += quant_error * 1 / 48
 
-    file_lines.insert(3, "DIMENSION : {}\n".format(count))  # Include count in DIMENSION line
+    # Include count in DIMENSION line
+    file_lines.insert(3, "DIMENSION : {}\n".format(count))
     # Now, write all lines to the file
     f.writelines(file_lines)
     f.write("EOF\n")
@@ -56,6 +58,7 @@ def apply_jarvis_judice_ninke_dithering(image, tsp_path):
     output_image = output_image.convert("RGBA")
     # print(count)
     return output_image
+
 
 # downscale = 2
 

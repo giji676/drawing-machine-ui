@@ -1,34 +1,23 @@
-import os
-import sys
-import math
 import json
-import time
-import dithering
+import math
+import os
 import subprocess
+import sys
+import time
+
+import numpy as np
+from PIL import Image, ImageDraw, ImageOps
+from PyQt5.QtCore import QPoint, Qt, QThread, pyqtSignal
+from PyQt5.QtGui import QColor, QImage, QPainter, QPen, QPixmap, QTransform
+from PyQt5.QtWidgets import (QApplication, QFileDialog, QGridLayout,
+                             QHBoxLayout, QLabel, QLineEdit, QMainWindow,
+                             QPushButton, QSizePolicy, QSpacerItem, QTabWidget,
+                             QTextEdit, QWidget)
+from rembg import remove
+
+import dithering
 import pathMaker
 import toSteps
-import numpy as np
-from rembg import remove
-from PIL import Image, ImageDraw, ImageOps
-
-from PyQt5.QtWidgets import (
-        QApplication,
-        QMainWindow,
-        QWidget,
-        QTabWidget,
-        QLineEdit,
-        QLabel,
-        QHBoxLayout,
-        QGridLayout,
-        QSpacerItem,
-        QSizePolicy,
-        QPushButton,
-        QFileDialog,
-        QTextEdit,
-        )
-
-from PyQt5.QtGui import QPainter, QPen, QPixmap, QTransform, QImage, QColor
-from PyQt5.QtCore import Qt, QPoint, QThread, pyqtSignal
 
 GENERATED_FILES = "generated_files"
 
@@ -55,7 +44,7 @@ DEFAULT_SETTINGS = {
     "distanceBetweenMotors": 580,
     "startDistance": [590, 590],
     "paperSize": [190, 270],
-    "paperOffset": 35
+    "paperOffset": 35,
 }
 
 settings = None
@@ -91,7 +80,7 @@ class WorkerThread(QThread):
             self.image = self.dither(self.image)
             self.image_signal.emit()
 
-    def wave(self,image: Image) -> Image:
+    def wave(self, image: Image) -> Image:
         # Converts the image to waves
         if not image:
             return None
@@ -100,14 +89,14 @@ class WorkerThread(QThread):
         scaled_colour_range = 10
         pixel_wave_size = 20
 
-        max_amplitude = pixel_wave_size/2
+        max_amplitude = pixel_wave_size / 2
 
         pixels = np.array(image)
 
         height, width = pixels.shape
-        new_height, new_width = height*20, width*20
+        new_height, new_width = height * 20, width * 20
 
-        image = Image.new("RGB", (new_width,new_height), color="white")
+        image = Image.new("RGB", (new_width, new_height), color="white")
         draw = ImageDraw.Draw(image)
 
         f = open(output_coordinates_path, "w")
@@ -116,7 +105,9 @@ class WorkerThread(QThread):
         start_time = time.time()
         for y in range(height):
             for x in range(width):
-                self.update_signal.emit(f"{str((y*width)+x)}/{str(height*width)}, {str(round(time.time() - start_time, 3))}")
+                self.update_signal.emit(
+                    f"{str((y*width)+x)}/{str(height*width)}, {str(round(time.time() - start_time, 3))}"
+                )
                 n_x = x
                 # Every other y level needs to start from the end so the other of the horizontal lines is: left-right-right-left...
                 if y % 2 != 0:
@@ -124,14 +115,14 @@ class WorkerThread(QThread):
                 amplitude = 0
                 frequency = 0
 
-                pixels[y, n_x] = round(pixels[y, n_x]/25.5)
+                pixels[y, n_x] = round(pixels[y, n_x] / 25.5)
                 # If the pixel value is under half of the <scaled_colour_range> only increase the amplitude
-                if pixels[y, n_x] < scaled_colour_range/2:
+                if pixels[y, n_x] < scaled_colour_range / 2:
                     frequency = 1
                     amplitude = pixels[y, n_x]
                 # If the pixel value is over half of the <scaled_colour_range> use max amplitude and increase frequency
                 else:
-                    frequency = pixels[y, n_x] - scaled_colour_range/2 + 1
+                    frequency = pixels[y, n_x] - scaled_colour_range / 2 + 1
                     amplitude = max_amplitude
 
                 # For each pixel of the processed image, <pixel_wave_size> x <pixel_wave_size> "super pixel" is created, that holds the wave for that pixel
@@ -144,25 +135,42 @@ class WorkerThread(QThread):
 
                     # Calculate the current pixel coordinates and the next pixel coordinates, so they can be joined with a line
                     x_pos = n_x * pixel_wave_size + n_i
-                    y_pos = (y * pixel_wave_size + pixel_wave_size/2) + (np.sin((n_i)/(pixel_wave_size/2)*frequency*np.pi)*amplitude)
+                    y_pos = (y * pixel_wave_size + pixel_wave_size / 2) + (
+                        np.sin((n_i) / (pixel_wave_size / 2) * frequency * np.pi)
+                        * amplitude
+                    )
 
                     next_x_pos = n_x * pixel_wave_size + n_i + n_offset
-                    next_y_pos = (y * pixel_wave_size + pixel_wave_size/2) + (np.sin((n_i+n_offset)/(pixel_wave_size/2)*frequency*np.pi)*amplitude)
+                    next_y_pos = (y * pixel_wave_size + pixel_wave_size / 2) + (
+                        np.sin(
+                            (n_i + n_offset) / (pixel_wave_size / 2) * frequency * np.pi
+                        )
+                        * amplitude
+                    )
                     f.write(str(x_pos) + " " + str(round(y_pos)) + "\n")
 
-                    draw.line(((x_pos, y_pos), (next_x_pos, next_y_pos)), fill=(0,0,0))
+                    draw.line(
+                        ((x_pos, y_pos), (next_x_pos, next_y_pos)), fill=(0, 0, 0)
+                    )
         f.close()
-        self.result = f"\nTotal run time: {round(time.time() - start_time, 3)} seconds\n"
+        self.result = (
+            f"\nTotal run time: {round(time.time() - start_time, 3)} seconds\n"
+        )
 
         self.finish_signal.emit()
 
         return image
 
-
     def linkern(self) -> None:
         # Runs the linkern.exe program
         linker_command = f"thepathmaker-x64\linkern.exe -o {cyc_path} {tsp_path}"
-        linker_result = subprocess.Popen(linker_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+        linker_result = subprocess.Popen(
+            linker_command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True,
+            text=True,
+        )
 
         # Continuous updates are emited through update_signal
         while linker_result.poll() is None:
@@ -217,23 +225,78 @@ class ConfigurationCanvas(QWidget):
         self.m1 = [0, 0]
         self.m2 = [self.m1[0] + self.settings["distanceBetweenMotors"], 0]
 
-        painter.drawEllipse(int(self.m1[0] - self.motorEllipseDia/2)+IMAGE_OFFSET[0],   self.m1[1]+IMAGE_OFFSET[1],   self.motorEllipseDia,  self.motorEllipseDia)
-        painter.drawEllipse(int(self.m2[0] - self.motorEllipseDia/2)+IMAGE_OFFSET[0],   self.m2[1]+IMAGE_OFFSET[1],   self.motorEllipseDia,  self.motorEllipseDia)
+        painter.drawEllipse(
+            int(self.m1[0] - self.motorEllipseDia / 2) + IMAGE_OFFSET[0],
+            self.m1[1] + IMAGE_OFFSET[1],
+            self.motorEllipseDia,
+            self.motorEllipseDia,
+        )
+        painter.drawEllipse(
+            int(self.m2[0] - self.motorEllipseDia / 2) + IMAGE_OFFSET[0],
+            self.m2[1] + IMAGE_OFFSET[1],
+            self.motorEllipseDia,
+            self.motorEllipseDia,
+        )
 
-        paperOffsetCalculated = [0,0]
-        penPosCalculated = [0,0]
-        if (self.settings["startDistance"][0]**2) - ((self.settings["distanceBetweenMotors"]/2)**2) > 0:
-            paperOffsetCalculated = [round(((self.settings["distanceBetweenMotors"]/2)-(self.settings["paperSize"][0]/2))),
-                                     (round(math.sqrt(self.settings["startDistance"][0]**2 - (self.settings["distanceBetweenMotors"]/2)**2) - self.settings["paperOffset"] - self.settings["paperSize"][1]))]
-            penPosCalculated = [round(self.settings["distanceBetweenMotors"]/2),
-                                round(math.sqrt(self.settings["startDistance"][0]**2 - (self.settings["distanceBetweenMotors"]/2)**2))]
+        paperOffsetCalculated = [0, 0]
+        penPosCalculated = [0, 0]
+        if (self.settings["startDistance"][0] ** 2) - (
+            (self.settings["distanceBetweenMotors"] / 2) ** 2
+        ) > 0:
+            paperOffsetCalculated = [
+                round(
+                    (
+                        (self.settings["distanceBetweenMotors"] / 2)
+                        - (self.settings["paperSize"][0] / 2)
+                    )
+                ),
+                (
+                    round(
+                        math.sqrt(
+                            self.settings["startDistance"][0] ** 2
+                            - (self.settings["distanceBetweenMotors"] / 2) ** 2
+                        )
+                        - self.settings["paperOffset"]
+                        - self.settings["paperSize"][1]
+                    )
+                ),
+            ]
+            penPosCalculated = [
+                round(self.settings["distanceBetweenMotors"] / 2),
+                round(
+                    math.sqrt(
+                        self.settings["startDistance"][0] ** 2
+                        - (self.settings["distanceBetweenMotors"] / 2) ** 2
+                    )
+                ),
+            ]
 
-        painter.drawLine(int(self.m1[0]+self.motorEllipseDia/2+IMAGE_OFFSET[0]),    int(self.m1[1]+self.motorEllipseDia/2+IMAGE_OFFSET[1]),    penPosCalculated[0]+IMAGE_OFFSET[0],    penPosCalculated[1]+IMAGE_OFFSET[1])
-        painter.drawLine(int(self.m2[0]-self.motorEllipseDia/2+IMAGE_OFFSET[0]),    int(self.m2[1]+self.motorEllipseDia/2+IMAGE_OFFSET[1]),    penPosCalculated[0]+IMAGE_OFFSET[0],    penPosCalculated[1]+IMAGE_OFFSET[1])
+        painter.drawLine(
+            int(self.m1[0] + self.motorEllipseDia / 2 + IMAGE_OFFSET[0]),
+            int(self.m1[1] + self.motorEllipseDia / 2 + IMAGE_OFFSET[1]),
+            penPosCalculated[0] + IMAGE_OFFSET[0],
+            penPosCalculated[1] + IMAGE_OFFSET[1],
+        )
+        painter.drawLine(
+            int(self.m2[0] - self.motorEllipseDia / 2 + IMAGE_OFFSET[0]),
+            int(self.m2[1] + self.motorEllipseDia / 2 + IMAGE_OFFSET[1]),
+            penPosCalculated[0] + IMAGE_OFFSET[0],
+            penPosCalculated[1] + IMAGE_OFFSET[1],
+        )
 
-        painter.drawEllipse(int(penPosCalculated[0] - self.penEllipseDia/2)+IMAGE_OFFSET[0],   penPosCalculated[1]+IMAGE_OFFSET[1],   self.penEllipseDia, self.penEllipseDia)
+        painter.drawEllipse(
+            int(penPosCalculated[0] - self.penEllipseDia / 2) + IMAGE_OFFSET[0],
+            penPosCalculated[1] + IMAGE_OFFSET[1],
+            self.penEllipseDia,
+            self.penEllipseDia,
+        )
 
-        painter.drawRect(paperOffsetCalculated[0]+IMAGE_OFFSET[0], paperOffsetCalculated[1]+IMAGE_OFFSET[1],  self.settings["paperSize"][0],   self.settings["paperSize"][1])
+        painter.drawRect(
+            paperOffsetCalculated[0] + IMAGE_OFFSET[0],
+            paperOffsetCalculated[1] + IMAGE_OFFSET[1],
+            self.settings["paperSize"][0],
+            self.settings["paperSize"][1],
+        )
 
     def setSettings(self, settings_: dict):
         self.settings = settings_
@@ -284,7 +347,8 @@ class ProcessCanvas(QWidget):
 
     def paintEvent(self, event) -> None:
         # QTs function, updates the canvas
-        if self.inputImage == None: return
+        if self.inputImage is None:
+            return
 
         painter = QPainter(self)
         transform = QTransform()
@@ -294,10 +358,11 @@ class ProcessCanvas(QWidget):
         painter.drawPixmap(0, 0, QPixmap.fromImage(self.inputImage))
 
     def quantize_grayscale_image(self) -> None:
-        if self.inputImage == None: return
+        if self.inputImage is None:
+            return
         # Sets the grayscale image colour range to <num_colors> - so instead of 255 colour values it only has <num_colors> amount
         num_colors = 10
-        scaling_factor = 255 / (num_colors-1)
+        scaling_factor = 255 / (num_colors - 1)
 
         quantized_image = self.inputImage.copy()
 
@@ -305,7 +370,9 @@ class ProcessCanvas(QWidget):
             for y in range(quantized_image.height()):
                 original_pixel_value = quantized_image.pixelColor(x, y).red()
 
-                scaled_value = int(int(original_pixel_value / scaling_factor) * scaling_factor)
+                scaled_value = int(
+                    int(original_pixel_value / scaling_factor) * scaling_factor
+                )
 
                 quantized_pixel_color = QColor(scaled_value, scaled_value, scaled_value)
                 quantized_image.setPixelColor(x, y, quantized_pixel_color)
@@ -314,7 +381,8 @@ class ProcessCanvas(QWidget):
         self.update()
 
     def loadImage(self, path: str) -> None:
-        if not os.path.exists(path): return
+        if not os.path.exists(path):
+            return
 
         self.inputImage = QImage(path)
         self.update()
@@ -328,19 +396,23 @@ class ProcessCanvas(QWidget):
             image = pathMaker.pathMaker(tsp_path, cyc_path, output_coordinates_path)
 
             image = image.convert("RGBA")
-            data = image.tobytes("raw","RGBA")
+            data = image.tobytes("raw", "RGBA")
 
-            self.inputImage = QImage(data, image.size[0], image.size[1], QImage.Format_RGBA8888)
+            self.inputImage = QImage(
+                data, image.size[0], image.size[1], QImage.Format_RGBA8888
+            )
             self.update()
 
     def convertToSteps(self) -> None:
         # Converts the coordinates of the points to steps of the stepper motor based on the <settings>
-        if not os.path.exists(output_coordinates_path): return
+        if not os.path.exists(output_coordinates_path):
+            return
         toSteps.convertToSteps(settings, output_coordinates_path, output_steps_path)
 
     def removeBg(self) -> None:
         # Removes the background of the image, and replaces it with white background instead of transparent
-        if self.inputImage == None: return
+        if self.inputImage is None:
+            return
 
         image = Image.fromqpixmap(self.inputImage)
         image = remove(image)
@@ -350,27 +422,35 @@ class ProcessCanvas(QWidget):
         image = jpg_image
 
         image = image.convert("RGBA")
-        data = image.tobytes("raw","RGBA")
-        self.inputImage = QImage(data, image.size[0], image.size[1], QImage.Format_RGBA8888)
+        data = image.tobytes("raw", "RGBA")
+        self.inputImage = QImage(
+            data, image.size[0], image.size[1], QImage.Format_RGBA8888
+        )
         self.update()
 
     def rotate90(self) -> None:
-        if self.inputImage == None: return
+        if self.inputImage is None:
+            return
 
         self.inputImage = self.inputImage.transformed(QTransform().rotate(90))
         self.update()
 
     def grayscale(self) -> None:
         # Converts the image to grayscale
-        if self.inputImage == None: return
+        if self.inputImage is None:
+            return
 
         self.inputImage = self.inputImage.convertToFormat(QImage.Format_Grayscale8)
         self.update()
 
     def scale(self) -> None:
-        if self.inputImage == None: return
+        if self.inputImage is None:
+            return
 
-        self.inputImage = self.inputImage.scaled(int(self.inputImage.width()/self.imageScale), int(self.inputImage.height()/self.imageScale))
+        self.inputImage = self.inputImage.scaled(
+            int(self.inputImage.width() / self.imageScale),
+            int(self.inputImage.height() / self.imageScale),
+        )
         self.update()
 
     # Mouse events for moving the image around and zooming in
@@ -440,7 +520,9 @@ class ProcessImage(QWidget):
         self.btnConvertToSteps.clicked.connect(self.imageCanvas.convertToSteps)
         self.btnConvertToSteps.setObjectName("testBtn")
 
-        self.vertical_spacer = QSpacerItem(0, 20, QSizePolicy.Fixed, QSizePolicy.Expanding)
+        self.vertical_spacer = QSpacerItem(
+            0, 20, QSizePolicy.Fixed, QSizePolicy.Expanding
+        )
 
         # Adding the lables and inputs to the layout
         lytInputs = QGridLayout()
@@ -483,9 +565,9 @@ class ProcessImage(QWidget):
             self.worker_thread.start()
 
     def start_wave(self):
-        if self.imageCanvas.inputImage == None:
+        if self.imageCanvas.inputImage is None:
             return
-        image = Image.fromqpixmap(self.imageCanvas.inputImage).convert('L')
+        image = Image.fromqpixmap(self.imageCanvas.inputImage).convert("L")
         image = ImageOps.invert(image)
 
         self.worker_thread.function_type = FunctionTypeEnum.WAVE
@@ -493,9 +575,9 @@ class ProcessImage(QWidget):
         self.worker_thread.start()
 
     def start_dither(self):
-        if self.imageCanvas.inputImage == None:
+        if self.imageCanvas.inputImage is None:
             return
-        image = Image.fromqpixmap(self.imageCanvas.inputImage).convert('L')
+        image = Image.fromqpixmap(self.imageCanvas.inputImage).convert("L")
         image = ImageOps.invert(image)
 
         self.worker_thread.function_type = FunctionTypeEnum.DITHER
@@ -516,13 +598,15 @@ class ProcessImage(QWidget):
     def image_output(self):
         image = self.worker_thread.image
         image = image.convert("RGBA")
-        data = image.tobytes("raw","RGBA")
+        data = image.tobytes("raw", "RGBA")
 
-        self.imageCanvas.inputImage = QImage(data, image.size[0], image.size[1], QImage.Format_RGBA8888)
+        self.imageCanvas.inputImage = QImage(
+            data, image.size[0], image.size[1], QImage.Format_RGBA8888
+        )
         self.imageCanvas.update()
 
     def scaleImage(self) -> None:
-        if self.imageCanvas.inputImage == None:
+        if self.imageCanvas.inputImage is None:
             return
 
         self.imageCanvas.imageScale = float(self.txtScale.text())
@@ -538,7 +622,9 @@ class ProcessImage(QWidget):
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
         fileFilter = "Images (*.png *.jpg *.jpeg *.bmp)"
-        self.inputImage, _ = QFileDialog.getOpenFileName(self, "Open Image File", "", fileFilter, options=options)
+        self.inputImage, _ = QFileDialog.getOpenFileName(
+            self, "Open Image File", "", fileFilter, options=options
+        )
         self.imageCanvas.loadImage(self.inputImage)
 
 
@@ -592,7 +678,9 @@ class ConfigureMachine(QWidget):
         self.loadSettings()
         self.setValuesInput(self.settings)
 
-        self.vertical_spacer = QSpacerItem(0, 20, QSizePolicy.Fixed, QSizePolicy.Expanding)
+        self.vertical_spacer = QSpacerItem(
+            0, 20, QSizePolicy.Fixed, QSizePolicy.Expanding
+        )
 
         # Adding the lables and inputs to the layout
         lytInputs = QGridLayout()
@@ -648,10 +736,19 @@ class ConfigureMachine(QWidget):
         self.settings["beltToothDistance"] = int(self.txtBeltToothDistance.text())
         self.settings["toothOngear"] = int(self.txtToothOnGear.text())
         self.settings["stepsPerRev"] = int(self.txtStepsPerRev.text())
-        self.settings["motorDir"] = [int(self.txtMotorDir1.text()), int(self.txtMotorDir2.text())]
+        self.settings["motorDir"] = [
+            int(self.txtMotorDir1.text()),
+            int(self.txtMotorDir2.text()),
+        ]
         self.settings["distanceBetweenMotors"] = int(self.txtMotorDist.text())
-        self.settings["startDistance"] = [int(self.txtStartDist1.text()), int(self.txtStartDist2.text())]
-        self.settings["paperSize"] = [int(self.txtPaperDimenions1.text()), int(self.txtPaperDimenions2.text())]
+        self.settings["startDistance"] = [
+            int(self.txtStartDist1.text()),
+            int(self.txtStartDist2.text()),
+        ]
+        self.settings["paperSize"] = [
+            int(self.txtPaperDimenions1.text()),
+            int(self.txtPaperDimenions2.text()),
+        ]
         self.settings["paperOffset"] = int(self.txtPaperOffset.text())
 
         self.rightCanvas.setSettings(self.settings)
@@ -661,7 +758,8 @@ class ConfigureMachine(QWidget):
 
     def setValuesInput(self, vals: dict) -> None:
         # Sets the input fields to the <vals> values
-        if vals == None: return
+        if vals is None:
+            return
 
         self.txtBeltToothDistance.setText(str(vals["beltToothDistance"]))
         self.txtToothOnGear.setText(str(vals["toothOngear"]))
@@ -715,7 +813,7 @@ class MyWindow(QMainWindow):
         self.setCentralWidget(tab_widget)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if not os.path.exists(GENERATED_FILES):
         os.makedirs(GENERATED_FILES)
 

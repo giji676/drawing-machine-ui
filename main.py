@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import time
+from multiprocessing import Pool
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageOps
@@ -18,6 +19,8 @@ from rembg import remove
 import dithering
 import pathMaker
 import toSteps
+import waveSmoother
+import waveSmootherStandalone
 
 GENERATED_FILES = "generated_files"
 
@@ -92,6 +95,26 @@ class WorkerThread(QThread):
         max_amplitude = pixel_wave_size / 2
 
         pixels = np.array(image)
+
+        # ======== WAVE WITH THE SMOOTHING FUNCTION ========
+        """
+        wave_function_arr = waveSmoother.genWave(
+            pixels
+        )
+        processed_wave = waveSmootherStandalone.process(wave_function_arr)
+        processed_height, processed_width = len(processed_wave) * pixel_wave_size, len(
+            processed_wave[0]
+        )
+
+        image = Image.new("RGB", (processed_height, processed_width), color="white")
+        draw = ImageDraw.Draw(image)
+        for y in range(len(processed_wave)):
+            for x in range(processed_width-1):
+                y_offset = y * pixel_wave_size + pixel_wave_size / 2
+                draw.line(((x, y_offset + processed_wave[y][x]), (x+1, y_offset + processed_wave[y][x+1])), fill=(0, 0, 0))
+        return image
+        """
+        # ======== END ========
 
         height, width = pixels.shape
         new_height, new_width = height * 20, width * 20

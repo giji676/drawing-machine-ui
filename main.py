@@ -4,7 +4,6 @@ import os
 import subprocess
 import sys
 import time
-from multiprocessing import Pool
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageOps
@@ -19,8 +18,9 @@ from rembg import remove
 import dithering
 import pathMaker
 import toSteps
-import waveSmoother
-import waveSmootherStandalone
+
+# import waveSmoother
+# import waveSmootherStandalone
 
 GENERATED_FILES = "generated_files"
 
@@ -31,7 +31,7 @@ OUTPUT_STEPS_TXT = "output_steps.txt"
 
 tsp_path = f"{GENERATED_FILES}\{IMAGE_TSP}"
 cyc_path = f"{GENERATED_FILES}\{IMAGE_CYC}"
-#output_coordinates_path = f"{GENERATED_FILES}\{OUTPUT_COORDINATES_TXT}"
+# output_coordinates_path = f"{GENERATED_FILES}\{OUTPUT_COORDINATES_TXT}"
 output_coordinates_path = f"drawing.gcode"
 output_steps_path = f"{GENERATED_FILES}\{OUTPUT_STEPS_TXT}"
 
@@ -160,14 +160,16 @@ class WorkerThread(QThread):
                     # Calculate the current pixel coordinates and the next pixel coordinates, so they can be joined with a line
                     x_pos = n_x * pixel_wave_size + n_i
                     y_pos = (y * pixel_wave_size + pixel_wave_size / 2) + (
-                        np.sin((n_i) / (pixel_wave_size / 2) * frequency * np.pi)
+                        np.sin((n_i) / (pixel_wave_size / 2)
+                               * frequency * np.pi)
                         * amplitude
                     )
 
                     next_x_pos = n_x * pixel_wave_size + n_i + n_offset
                     next_y_pos = (y * pixel_wave_size + pixel_wave_size / 2) + (
                         np.sin(
-                            (n_i + n_offset) / (pixel_wave_size / 2) * frequency * np.pi
+                            (n_i + n_offset) /
+                            (pixel_wave_size / 2) * frequency * np.pi
                         )
                         * amplitude
                     )
@@ -309,7 +311,8 @@ class ConfigurationCanvas(QWidget):
         )
 
         painter.drawEllipse(
-            int(penPosCalculated[0] - self.penEllipseDia / 2) + IMAGE_OFFSET[0],
+            int(penPosCalculated[0] -
+                self.penEllipseDia / 2) + IMAGE_OFFSET[0],
             penPosCalculated[1] + IMAGE_OFFSET[1],
             self.penEllipseDia,
             self.penEllipseDia,
@@ -398,7 +401,8 @@ class ProcessCanvas(QWidget):
                     int(original_pixel_value / scaling_factor) * scaling_factor
                 )
 
-                quantized_pixel_color = QColor(scaled_value, scaled_value, scaled_value)
+                quantized_pixel_color = QColor(
+                    scaled_value, scaled_value, scaled_value)
                 quantized_image.setPixelColor(x, y, quantized_pixel_color)
 
         self.inputImage = quantized_image
@@ -417,7 +421,8 @@ class ProcessCanvas(QWidget):
 
         if linker_result.returncode == 0:
 
-            image = pathMaker.pathMaker(tsp_path, cyc_path, output_coordinates_path)
+            image = pathMaker.pathMaker(
+                tsp_path, cyc_path, output_coordinates_path)
 
             image = image.convert("RGBA")
             data = image.tobytes("raw", "RGBA")
@@ -431,7 +436,8 @@ class ProcessCanvas(QWidget):
         # Converts the coordinates of the points to steps of the stepper motor based on the <settings>
         if not os.path.exists(output_coordinates_path):
             return
-        toSteps.convertToSteps(settings, output_coordinates_path, output_steps_path)
+        toSteps.convertToSteps(
+            settings, output_coordinates_path, output_steps_path)
 
     def removeBg(self) -> None:
         # Removes the background of the image, and replaces it with white background instead of transparent
@@ -464,7 +470,8 @@ class ProcessCanvas(QWidget):
         if self.inputImage is None:
             return
 
-        self.inputImage = self.inputImage.convertToFormat(QImage.Format_Grayscale8)
+        self.inputImage = self.inputImage.convertToFormat(
+            QImage.Format_Grayscale8)
         self.update()
 
     def scale(self) -> None:
@@ -539,7 +546,8 @@ class ProcessImage(QWidget):
         self.btnDither.clicked.connect(self.start_dither)
         self.btnWave.clicked.connect(self.start_wave)
         self.btnRemoveBG.clicked.connect(self.imageCanvas.removeBg)
-        self.btnColourScale.clicked.connect(self.imageCanvas.quantize_grayscale_image)
+        self.btnColourScale.clicked.connect(
+            self.imageCanvas.quantize_grayscale_image)
         self.btnMakePath.clicked.connect(self.start_linkern)
         self.btnConvertToSteps.clicked.connect(self.imageCanvas.convertToSteps)
         self.btnConvertToSteps.setObjectName("testBtn")
@@ -757,7 +765,8 @@ class ConfigureMachine(QWidget):
 
     def processSettings(self) -> None:
         # Sets the settings to the values of the input fields
-        self.settings["beltToothDistance"] = int(self.txtBeltToothDistance.text())
+        self.settings["beltToothDistance"] = int(
+            self.txtBeltToothDistance.text())
         self.settings["toothOngear"] = int(self.txtToothOnGear.text())
         self.settings["stepsPerRev"] = int(self.txtStepsPerRev.text())
         self.settings["motorDir"] = [

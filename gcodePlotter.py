@@ -14,7 +14,7 @@ for line in f:
     if line == "PENUP":
         pen_down = False
     elif line == "PENDOWN":
-        pen_down = True 
+        pen_down = True
 
     else:
         line = line.split()

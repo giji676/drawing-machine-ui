@@ -17,7 +17,8 @@ def convertToSteps(settings, input_file, output_file):
         int(settings["startDistance"][1]),
     ]
     # mm | Paper dimensions after padding | default [190, 270]
-    mm_paper_dimensions = [int(settings["paperSize"][0]), int(settings["paperSize"][1])]
+    mm_paper_dimensions = [
+        int(settings["paperSize"][0]), int(settings["paperSize"][1])]
     # mm | Distance between start position of the pen and the paper bottom above it | default 35
     mm_paper_offset_from_start = int(settings["paperOffset"])
 
@@ -36,7 +37,8 @@ def convertToSteps(settings, input_file, output_file):
     s_paper_offset_calculated = [
         round(((s_distance_between_motors / 2) - (s_paper_dimensions[0] / 2))),
         round(
-            math.sqrt(s_start_distance[0] ** 2 - (s_distance_between_motors / 2) ** 2)
+            math.sqrt(s_start_distance[0] ** 2 -
+                      (s_distance_between_motors / 2) ** 2)
             - s_paper_offset_from_start
             - s_paper_dimensions[1]
         ),
@@ -87,10 +89,8 @@ def convertToSteps(settings, input_file, output_file):
     for line in f:
         line = line.strip()
         if line == "PENUP":
-            pen_down = False
             imgs.append("PENUP")
         elif line == "PENDOWN":
-            pen_down = True
             imgs.append("PENDOWN")
         else:
             line = line.split()
@@ -106,7 +106,8 @@ def convertToSteps(settings, input_file, output_file):
 
         s_new_distance = [
             (math.sqrt(img[0] ** 2 + img[1] ** 2)),
-            (math.sqrt((s_distance_between_motors - img[0]) ** 2 + img[1] ** 2)),
+            (math.sqrt(
+                (s_distance_between_motors - img[0]) ** 2 + img[1] ** 2)),
         ]
 
         s_change = [
@@ -114,7 +115,8 @@ def convertToSteps(settings, input_file, output_file):
             round(s_current_distance[1] - s_new_distance[1]),
         ]
 
-        s_current_distance = [round(s_new_distance[0]), round(s_new_distance[1])]
+        s_current_distance = [
+            round(s_new_distance[0]), round(s_new_distance[1])]
         return s_change
 
     max_x = 0

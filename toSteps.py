@@ -83,16 +83,20 @@ def convertToSteps(settings, input_file, output_file):
 
     imgs = []
     f = open(input_file, "r")
-    sample_array = []
-    for line in f.readlines():
-        temp = line.split(" ")
-        temp[1] = temp[1].strip("\n")
-        sample_array.append([temp[0], temp[1]])
-    f.close()
 
-    for arr in sample_array:
-        arr = [int(numeric_string) for numeric_string in arr]
-        imgs.append(arr)
+    for line in f:
+        line = line.strip()
+        if line == "PENUP":
+            pen_down = False
+            imgs.append("PENUP")
+        elif line == "PENDOWN":
+            pen_down = True
+            imgs.append("PENDOWN")
+        else:
+            line = line.split()
+            x, y = int(float(line[0])), int(float(line[1]))
+            imgs.append([x, y])
+    f.close()
 
     def remap(x, in_min, in_max, out_min, out_max):
         return (x - in_min) * (out_max - out_min) // (in_max - in_min) + out_min
@@ -113,14 +117,28 @@ def convertToSteps(settings, input_file, output_file):
         s_current_distance = [round(s_new_distance[0]), round(s_new_distance[1])]
         return s_change
 
-    max_x = max(row[0] for row in imgs)
-    max_y = max(row[1] for row in imgs)
+    max_x = 0
+    max_y = 0
+    for row in imgs:
+        if row == "PENUP" or row == "PENDOWN":
+            continue
+        if row[0] > max_x:
+            max_x = row[0]
+        if row[1] > max_y:
+            max_y = row[1]
 
     s_motor_current_offset = [0, 0]
 
     f = open(output_file, "w")
 
     for img in imgs:
+        if img == "PENUP":
+            f.write(f"{img}:45\n")
+            continue
+        if img == "PENDOWN":
+            f.write(f"{img}:0\n")
+            continue
+
         img = [
             remap(
                 img[0],
@@ -154,3 +172,4 @@ def convertToSteps(settings, input_file, output_file):
 
         f.write(uno_input)
     f.close()
+    print("done")

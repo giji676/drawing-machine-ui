@@ -4,3 +4,5 @@ __pycache__/
 .venv/
 *.jpg
 *.png
+*.txt
+*.gcode

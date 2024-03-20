@@ -31,8 +31,7 @@ OUTPUT_STEPS_TXT = "output_steps.txt"
 
 tsp_path = f"{GENERATED_FILES}\{IMAGE_TSP}"
 cyc_path = f"{GENERATED_FILES}\{IMAGE_CYC}"
-# output_coordinates_path = f"{GENERATED_FILES}\{OUTPUT_COORDINATES_TXT}"
-output_coordinates_path = f"drawing.gcode"
+output_coordinates_path = f"{GENERATED_FILES}\{OUTPUT_COORDINATES_TXT}"
 output_steps_path = f"{GENERATED_FILES}\{OUTPUT_STEPS_TXT}"
 
 SETTINGS = "settings.json"

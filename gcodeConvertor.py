@@ -35,7 +35,6 @@ class CustomInterface(interfaces.Gcode):
 
         # Don't do anything if linear move was called without passing a value.
         if x is None and y is None and z is None:
-            warnings.warn("linear_move command invoked without arguments.")
             return ""
         command = ""
 
@@ -60,7 +59,7 @@ gcode_compiler = Compiler(
     CustomInterface, movement_speed=1000, cutting_speed=300, pass_depth=5
 )
 
-curves = parse_file("example.svg")  # Parse an svg file into geometric curves
+curves = parse_file("input.svg")  # Parse an svg file into geometric curves
 
 gcode_compiler.append_curves(curves)
-gcode_compiler.compile_to_file("drawing.gcode")
+gcode_compiler.compile_to_file("generated_files\output_coordinates.txt")

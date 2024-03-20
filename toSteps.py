@@ -85,6 +85,8 @@ def convertToSteps(settings, input_file, output_file):
 
     imgs = []
     f = open(input_file, "r")
+    max_x = 0
+    max_y = 0
 
     for line in f:
         line = line.strip()
@@ -96,6 +98,10 @@ def convertToSteps(settings, input_file, output_file):
             line = line.split()
             x, y = int(float(line[0])), int(float(line[1]))
             imgs.append([x, y])
+            if x > max_x:
+                max_x = x
+            if y > max_y:
+                max_y = y
     f.close()
 
     def remap(x, in_min, in_max, out_min, out_max):
@@ -118,16 +124,6 @@ def convertToSteps(settings, input_file, output_file):
         s_current_distance = [
             round(s_new_distance[0]), round(s_new_distance[1])]
         return s_change
-
-    max_x = 0
-    max_y = 0
-    for row in imgs:
-        if row == "PENUP" or row == "PENDOWN":
-            continue
-        if row[0] > max_x:
-            max_x = row[0]
-        if row[1] > max_y:
-            max_y = row[1]
 
     s_motor_current_offset = [0, 0]
 

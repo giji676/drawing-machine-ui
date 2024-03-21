@@ -431,7 +431,7 @@ class ProcessCanvas(QWidget):
         # Converts the coordinates of the points to steps of the stepper motor based on the <settings>
         if not os.path.exists(output_coordinates_path):
             return
-        toSteps.convertToSteps(settings, output_coordinates_path, output_steps_path, fit=True)
+        toSteps.convertToSteps(settings, output_coordinates_path, output_steps_path, fit=False)
 
     def removeBg(self) -> None:
         # Removes the background of the image, and replaces it with white background instead of transparent

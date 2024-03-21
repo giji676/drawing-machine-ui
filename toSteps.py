@@ -124,7 +124,7 @@ def convertToSteps(settings, input_file, output_file, fit=False):
     s_motor_current_offset = [0, 0]
 
     image_offset = [0, 0]
-    new_max = [max_x, max_y]
+    new_max = [s_paper_dimensions[0], s_paper_dimensions[1]]
 
     # fit=True means fit the image to the canvas while preserving aspect ratio
     # fit=False means stretch the image to fully fit the canvas, but changes the aspect ratio

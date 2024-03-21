@@ -21,7 +21,7 @@ class CustomInterface(interfaces.Gcode):
                 f"The interface will scale it correctly."
             )
 
-        return "PENDOWN"  # Turn on the fan + change laser power
+        return "PENDOWN"
 
     def set_absolute_coordinates(self):
         return ""
@@ -54,12 +54,14 @@ class CustomInterface(interfaces.Gcode):
         return command
 
 
-# Instantiate a compiler, specifying the custom interface and the speed at which the tool should move.
-gcode_compiler = Compiler(
-    CustomInterface, movement_speed=1000, cutting_speed=300, pass_depth=5
-)
+def SVGToGCODE(input_path, output_path):
+    # Instantiate a compiler, specifying the custom interface and the speed at which the tool should move.
+    gcode_compiler = Compiler(
+        CustomInterface, movement_speed=1000, cutting_speed=300, pass_depth=5
+    )
 
-curves = parse_file("input.svg")  # Parse an svg file into geometric curves
+    curves = parse_file(input_path)  # Parse an svg file into geometric curves
 
-gcode_compiler.append_curves(curves)
-gcode_compiler.compile_to_file("generated_files\output_coordinates.txt")
+    gcode_compiler.append_curves(curves)
+    gcode_compiler.compile_to_file(output_path)
+    return 1

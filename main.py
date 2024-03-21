@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (QApplication, QFileDialog, QGridLayout,
 from rembg import remove
 
 import dithering
+import gcodeConvertor
 import pathMaker
 import toSteps
 
@@ -159,16 +160,14 @@ class WorkerThread(QThread):
                     # Calculate the current pixel coordinates and the next pixel coordinates, so they can be joined with a line
                     x_pos = n_x * pixel_wave_size + n_i
                     y_pos = (y * pixel_wave_size + pixel_wave_size / 2) + (
-                        np.sin((n_i) / (pixel_wave_size / 2)
-                               * frequency * np.pi)
+                        np.sin((n_i) / (pixel_wave_size / 2) * frequency * np.pi)
                         * amplitude
                     )
 
                     next_x_pos = n_x * pixel_wave_size + n_i + n_offset
                     next_y_pos = (y * pixel_wave_size + pixel_wave_size / 2) + (
                         np.sin(
-                            (n_i + n_offset) /
-                            (pixel_wave_size / 2) * frequency * np.pi
+                            (n_i + n_offset) / (pixel_wave_size / 2) * frequency * np.pi
                         )
                         * amplitude
                     )
@@ -310,8 +309,7 @@ class ConfigurationCanvas(QWidget):
         )
 
         painter.drawEllipse(
-            int(penPosCalculated[0] -
-                self.penEllipseDia / 2) + IMAGE_OFFSET[0],
+            int(penPosCalculated[0] - self.penEllipseDia / 2) + IMAGE_OFFSET[0],
             penPosCalculated[1] + IMAGE_OFFSET[1],
             self.penEllipseDia,
             self.penEllipseDia,
@@ -400,8 +398,7 @@ class ProcessCanvas(QWidget):
                     int(original_pixel_value / scaling_factor) * scaling_factor
                 )
 
-                quantized_pixel_color = QColor(
-                    scaled_value, scaled_value, scaled_value)
+                quantized_pixel_color = QColor(scaled_value, scaled_value, scaled_value)
                 quantized_image.setPixelColor(x, y, quantized_pixel_color)
 
         self.inputImage = quantized_image
@@ -420,8 +417,7 @@ class ProcessCanvas(QWidget):
 
         if linker_result.returncode == 0:
 
-            image = pathMaker.pathMaker(
-                tsp_path, cyc_path, output_coordinates_path)
+            image = pathMaker.pathMaker(tsp_path, cyc_path, output_coordinates_path)
 
             image = image.convert("RGBA")
             data = image.tobytes("raw", "RGBA")
@@ -435,8 +431,7 @@ class ProcessCanvas(QWidget):
         # Converts the coordinates of the points to steps of the stepper motor based on the <settings>
         if not os.path.exists(output_coordinates_path):
             return
-        toSteps.convertToSteps(
-            settings, output_coordinates_path, output_steps_path)
+        toSteps.convertToSteps(settings, output_coordinates_path, output_steps_path)
 
     def removeBg(self) -> None:
         # Removes the background of the image, and replaces it with white background instead of transparent
@@ -469,8 +464,7 @@ class ProcessCanvas(QWidget):
         if self.inputImage is None:
             return
 
-        self.inputImage = self.inputImage.convertToFormat(
-            QImage.Format_Grayscale8)
+        self.inputImage = self.inputImage.convertToFormat(QImage.Format_Grayscale8)
         self.update()
 
     def scale(self) -> None:
@@ -545,8 +539,7 @@ class ProcessImage(QWidget):
         self.btnDither.clicked.connect(self.start_dither)
         self.btnWave.clicked.connect(self.start_wave)
         self.btnRemoveBG.clicked.connect(self.imageCanvas.removeBg)
-        self.btnColourScale.clicked.connect(
-            self.imageCanvas.quantize_grayscale_image)
+        self.btnColourScale.clicked.connect(self.imageCanvas.quantize_grayscale_image)
         self.btnMakePath.clicked.connect(self.start_linkern)
         self.btnConvertToSteps.clicked.connect(self.imageCanvas.convertToSteps)
         self.btnConvertToSteps.setObjectName("testBtn")
@@ -568,7 +561,7 @@ class ProcessImage(QWidget):
         lytInputs.addWidget(self.btnWave, 4, 0)
         lytInputs.addWidget(self.btnRemoveBG, 4, 1)
         lytInputs.addWidget(self.btnMakePath, 5, 0)
-        lytInputs.addWidget(self.btnConvertToSteps, 5, 1)
+        lytInputs.addWidget(self.btnConvertToSteps, 6, 0)
 
         lytInputs.addWidget(self.lblOutput, 6, 0)
         lytInputs.addWidget(self.output_text_edit, 7, 0, 1, 2)
@@ -652,11 +645,79 @@ class ProcessImage(QWidget):
         # Opens the windows for opening the image
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
-        fileFilter = "Images (*.png *.jpg *.jpeg *.bmp)"
+        fileFilter = "Images (*.png *.jpg *.jpeg *.bmp *.svg)"
         self.inputImage, _ = QFileDialog.getOpenFileName(
             self, "Open Image File", "", fileFilter, options=options
         )
+
+        if ".svg" in self.inputImage:
+            # Program cannot work with normal SVG files,
+            # but if it's the path of the image
+            # (such as output of the "DrawingBot" program)
+            # then it can be turned into GCODE,
+            # and then turned into normal coordinate image
+            self.SVGToGCODE(self.inputImage)
+            return
+
         self.imageCanvas.loadImage(self.inputImage)
+
+    def SVGToGCODE(self, path) -> None:
+        # Turns SVG path to GCODE
+        if gcodeConvertor.SVGToGCODE(path, output_coordinates_path) == 1:
+            # Turnes the GCODE into normal image
+            image = self.gcodePlotter()
+            image = image.convert("RGBA")
+            data = image.tobytes("raw", "RGBA")
+
+            self.imageCanvas.inputImage = QImage(
+                data, image.size[0], image.size[1], QImage.Format_RGBA8888
+            )
+            self.imageCanvas.update()
+
+    def gcodePlotter(self) -> Image:
+        f = open(output_coordinates_path, "r")
+        max_x, max_y = 0, 0
+
+        for line in f:
+            line = line.strip()
+
+            if line == "PENUP" or line == "PENDOWN":
+                continue
+
+            line = line.split()
+            x, y = float(line[0]), float(line[1])
+
+            if x > max_x:
+                max_x = x
+            if y > max_y:
+                max_y = y
+        f.close()
+        max_x, max_y = int(max_x) + 1, int(max_y) + 1
+
+        image = Image.new("RGB", (max_x, max_y), color="white")
+        draw = ImageDraw.Draw(image)
+
+        x, y = 0, 0
+        pen_down = False
+
+        f = open(output_coordinates_path, "r")
+
+        for line in f:
+            line = line.strip()
+
+            if line == "PENUP":
+                pen_down = False
+            elif line == "PENDOWN":
+                pen_down = True
+
+            else:
+                line = line.split()
+                n_x, n_y = float(line[0]), float(line[1])
+                if pen_down:
+                    draw.line(((x, max_y - y), (n_x, max_y - n_y)), fill=(0, 0, 0))
+                x, y = n_x, n_y
+
+        return image
 
 
 # Drawing machine configuration window
@@ -764,8 +825,7 @@ class ConfigureMachine(QWidget):
 
     def processSettings(self) -> None:
         # Sets the settings to the values of the input fields
-        self.settings["beltToothDistance"] = int(
-            self.txtBeltToothDistance.text())
+        self.settings["beltToothDistance"] = int(self.txtBeltToothDistance.text())
         self.settings["toothOngear"] = int(self.txtToothOnGear.text())
         self.settings["stepsPerRev"] = int(self.txtStepsPerRev.text())
         self.settings["motorDir"] = [

@@ -1,7 +1,7 @@
 import math
 
 
-def convertToSteps(settings, input_file, output_file):
+def convertToSteps(settings, input_file, output_file, fit=False):
     global s_current_distance
     # mm | Distance between each tooth on the belt
     mm_belt_tooth_distance = int(settings["beltToothDistance"])
@@ -17,8 +17,7 @@ def convertToSteps(settings, input_file, output_file):
         int(settings["startDistance"][1]),
     ]
     # mm | Paper dimensions after padding | default [190, 270]
-    mm_paper_dimensions = [
-        int(settings["paperSize"][0]), int(settings["paperSize"][1])]
+    mm_paper_dimensions = [int(settings["paperSize"][0]), int(settings["paperSize"][1])]
     # mm | Distance between start position of the pen and the paper bottom above it | default 35
     mm_paper_offset_from_start = int(settings["paperOffset"])
 
@@ -37,8 +36,7 @@ def convertToSteps(settings, input_file, output_file):
     s_paper_offset_calculated = [
         round(((s_distance_between_motors / 2) - (s_paper_dimensions[0] / 2))),
         round(
-            math.sqrt(s_start_distance[0] ** 2 -
-                      (s_distance_between_motors / 2) ** 2)
+            math.sqrt(s_start_distance[0] ** 2 - (s_distance_between_motors / 2) ** 2)
             - s_paper_offset_from_start
             - s_paper_dimensions[1]
         ),
@@ -112,8 +110,7 @@ def convertToSteps(settings, input_file, output_file):
 
         s_new_distance = [
             (math.sqrt(img[0] ** 2 + img[1] ** 2)),
-            (math.sqrt(
-                (s_distance_between_motors - img[0]) ** 2 + img[1] ** 2)),
+            (math.sqrt((s_distance_between_motors - img[0]) ** 2 + img[1] ** 2)),
         ]
 
         s_change = [
@@ -121,11 +118,29 @@ def convertToSteps(settings, input_file, output_file):
             round(s_current_distance[1] - s_new_distance[1]),
         ]
 
-        s_current_distance = [
-            round(s_new_distance[0]), round(s_new_distance[1])]
+        s_current_distance = [round(s_new_distance[0]), round(s_new_distance[1])]
         return s_change
 
     s_motor_current_offset = [0, 0]
+
+    image_offset = [0, 0]
+    new_max = [max_x, max_y]
+
+    # fit=True means fit the image to the canvas while preserving aspect ratio
+    # fit=False means stretch the image to fully fit the canvas, but changes the aspect ratio
+    # stretch will result in stretched/distorted image
+
+    # Calculate the offsets and new max dimensions based on the best fit
+    # Image offsets are used to center the image on the canvas
+    if fit:
+        image_ar = max_x / max_y
+        canvas_ar = s_paper_dimensions[0] / s_paper_dimensions[1]
+        if image_ar >= canvas_ar:
+            new_max = [s_paper_dimensions[0], max_y * (s_paper_dimensions[0] / max_x)]
+            image_offset = [0, (s_paper_dimensions[1] / 2) - (new_max[1] / 2)]
+        else:
+            new_max = [max_x * (s_paper_dimensions[1] / max_y), s_paper_dimensions[1]]
+            image_offset = [(s_paper_dimensions[0] / 2) - (new_max[0] / 2), 0]
 
     f = open(output_file, "w")
 
@@ -143,15 +158,17 @@ def convertToSteps(settings, input_file, output_file):
                 0,
                 max_x,
                 s_paper_offset_calculated[0],
-                s_paper_offset_calculated[0] + s_paper_dimensions[0],
-            ),
+                s_paper_offset_calculated[0] + new_max[0],
+            )
+            + image_offset[0],
             remap(
                 img[1],
                 0,
                 max_y,
                 s_paper_offset_calculated[1],
-                s_paper_offset_calculated[1] + s_paper_dimensions[1],
-            ),
+                s_paper_offset_calculated[1] + new_max[1],
+            )
+            + image_offset[1],
         ]
 
         values = calculate(img)

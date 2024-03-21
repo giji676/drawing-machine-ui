@@ -28,7 +28,7 @@ GENERATED_FILES = "generated_files"
 IMAGE_TSP = "image.tsp"
 IMAGE_CYC = "image.cyc"
 OUTPUT_COORDINATES_TXT = "output_coordinates.txt"
-OUTPUT_STEPS_TXT = "output_steps.txt"
+OUTPUT_STEPS_TXT = "path.txt"
 
 tsp_path = f"{GENERATED_FILES}\{IMAGE_TSP}"
 cyc_path = f"{GENERATED_FILES}\{IMAGE_CYC}"
@@ -431,7 +431,7 @@ class ProcessCanvas(QWidget):
         # Converts the coordinates of the points to steps of the stepper motor based on the <settings>
         if not os.path.exists(output_coordinates_path):
             return
-        toSteps.convertToSteps(settings, output_coordinates_path, output_steps_path)
+        toSteps.convertToSteps(settings, output_coordinates_path, output_steps_path, fit=True)
 
     def removeBg(self) -> None:
         # Removes the background of the image, and replaces it with white background instead of transparent

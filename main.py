@@ -678,6 +678,7 @@ class ProcessImage(QWidget):
         f = open(output_coordinates_path, "r")
         max_x, max_y = 0, 0
 
+        # Find max x and y
         for line in f:
             line = line.strip()
 
@@ -699,23 +700,34 @@ class ProcessImage(QWidget):
 
         x, y = 0, 0
         pen_down = False
+        flipped_image = []
 
         f = open(output_coordinates_path, "r")
 
+        # Flip the image horizontaly and draw the image
         for line in f:
             line = line.strip()
 
             if line == "PENUP":
                 pen_down = False
+                flipped_image.append(line)
             elif line == "PENDOWN":
                 pen_down = True
+                flipped_image.append(line)
 
             else:
                 line = line.split()
                 n_x, n_y = float(line[0]), float(line[1])
                 if pen_down:
                     draw.line(((x, max_y - y), (n_x, max_y - n_y)), fill=(0, 0, 0))
+                flipped_image.append(f"{x} {max_y - y}\n")
+
                 x, y = n_x, n_y
+
+        f.close()
+        f = open(output_coordinates_path, "w")
+        f.writelines(flipped_image)
+        f.close()
 
         return image
 

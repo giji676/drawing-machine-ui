@@ -561,7 +561,7 @@ class ProcessImage(QWidget):
         lytInputs.addWidget(self.btnWave, 4, 0)
         lytInputs.addWidget(self.btnRemoveBG, 4, 1)
         lytInputs.addWidget(self.btnMakePath, 5, 0)
-        lytInputs.addWidget(self.btnConvertToSteps, 6, 0)
+        lytInputs.addWidget(self.btnConvertToSteps, 5, 1)
 
         lytInputs.addWidget(self.lblOutput, 6, 0)
         lytInputs.addWidget(self.output_text_edit, 7, 0, 1, 2)

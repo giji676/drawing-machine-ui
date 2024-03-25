@@ -337,12 +337,12 @@ class ConfigurationCanvas(QWidget):
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.dragging = True
-            self.start_pos = event.pos() - self.last_pos
+            self.start_pos = event.pos() - self.last_pos * self.scale_factor
 
     def mouseMoveEvent(self, event):
         if self.dragging:
             self.delta = event.pos()
-            self.cur_pos = self.delta - self.start_pos
+            self.cur_pos = (self.delta - self.start_pos) / self.scale_factor
             self.last_pos = self.cur_pos
             self.update()
 
@@ -356,7 +356,8 @@ class ProcessCanvas(QWidget):
     def __init__(self):
         super().__init__()
         self.setGeometry(100, 100, 400, 400)
-        self.zoomScale = 1.0
+        self.scale_factor = 1.0
+        self.scale_factor = 1.0
         self.setMouseTracking(True)
         self.dragging = False
         self.start_pos = QPoint()
@@ -376,7 +377,7 @@ class ProcessCanvas(QWidget):
 
         painter = QPainter(self)
         transform = QTransform()
-        transform.scale(self.zoomScale, self.zoomScale)
+        transform.scale(self.scale_factor, self.scale_factor)
         transform.translate(self.cur_pos.x(), self.cur_pos.y())
         painter.setTransform(transform)
         painter.drawPixmap(0, 0, QPixmap.fromImage(self.inputImage))
@@ -431,7 +432,9 @@ class ProcessCanvas(QWidget):
         # Converts the coordinates of the points to steps of the stepper motor based on the <settings>
         if not os.path.exists(output_coordinates_path):
             return
-        toSteps.convertToSteps(settings, output_coordinates_path, output_steps_path, fit=False)
+        toSteps.convertToSteps(
+            settings, output_coordinates_path, output_steps_path, fit=False
+        )
 
     def removeBg(self) -> None:
         # Removes the background of the image, and replaces it with white background instead of transparent
@@ -481,18 +484,18 @@ class ProcessCanvas(QWidget):
     def wheelEvent(self, event):
         # Zoom in/out with the mouse wheel
         zoom_factor = 1.1 if event.angleDelta().y() > 0 else 1 / 1.1
-        self.zoomScale *= zoom_factor
+        self.scale_factor *= zoom_factor
         self.update()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.dragging = True
-            self.start_pos = event.pos() - self.last_pos
+            self.start_pos = event.pos() - self.last_pos * self.scale_factor
 
     def mouseMoveEvent(self, event):
         if self.dragging:
             self.delta = event.pos()
-            self.cur_pos = self.delta - self.start_pos
+            self.cur_pos = (self.delta - self.start_pos) / self.scale_factor
             self.last_pos = self.cur_pos
             self.update()
 

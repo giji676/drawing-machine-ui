@@ -36,8 +36,10 @@ int maxSpeed = 3000;  // Default maxSpeed
 
 File file;
 const int chipSelect = 10;
+int highlightedFileIndex = 0;
 int selectedFileIndex = 0;
 int inFileSelection = true;
+int numFiles = 0;
 
 bool running = false;
 
@@ -82,77 +84,112 @@ void setup ()
 
   display.begin(i2c_Address, true);
   display.display();
+  while (true) {
+    while (inFileSelection) {
+      file = SD.open("/");
+      displayFiles(file);
+      file.close();
+    }
 
-  file = SD.open("/");
-  while (inFileSelection) {
-    displayFiles(file);
+    file = SD.open("/");
+
+    int fileIndex = 0;
+
+    while (true) {
+      File entry =  file.openNextFile();
+      if (!entry) {
+        break;
+      }
+      if (!entry.isDirectory()) {
+        if (fileIndex == selectedFileIndex) {
+          file = entry;
+          break;
+        }
+        fileIndex ++;
+      }
+      entry.close();
+    }
+    displayText("Run");
+
+    while (file.available()) {
+      if (!running) {
+        continue;
+      }
+
+      String line = file.readStringUntil('\n');
+      line.trim();
+      displayText(line);
+
+      if (line.startsWith("maxSpeed:")) {
+        int colonIndex = line.indexOf(":");
+        if (colonIndex != -1) {
+          String maxSpeedStr = line.substring(colonIndex + 1);
+          maxSpeed = maxSpeedStr.toInt();
+          stepper1.setMaxSpeed(maxSpeed);
+          stepper2.setMaxSpeed(maxSpeed);
+          Serial.print("Set maxSpeed: ");
+          Serial.println(maxSpeed);
+          continue;
+        }
+      }
+      else if (line.startsWith("PENUP:")) {
+        int colonIndex = line.indexOf(":");
+        if (colonIndex != -1) {
+          String servoPosStr = line.substring(colonIndex + 1);
+          servoPos = servoPosStr.toInt();
+          servoMotor.write(servoPos);
+          delay(1000);
+          continue;
+        }
+      }
+      else if (line.startsWith("PENDOWN:")) {
+        int colonIndex = line.indexOf(":");
+        if (colonIndex != -1) {
+          String servoPosStr = line.substring(colonIndex + 1);
+          servoPos = servoPosStr.toInt();
+          servoMotor.write(servoPos);
+          delay(1000);
+          continue;
+        }
+      }
+
+      int commaIndex = line.indexOf(",");
+
+      if (commaIndex != -1) {
+        String num1Str = line.substring(0, commaIndex);
+        String num2Str = line.substring(commaIndex + 1);
+
+        int num1 = num1Str.toInt();
+        int num2 = num2Str.toInt();
+
+        long positions[2];
+
+        positions[0] = num1;
+        positions[1] = num2;
+          
+        steppers.moveTo(positions);
+        steppers.runSpeedToPosition();
+      }
+    }
+    while (running) {
+      displayFinishScreen();
+    }
+    highlightedFileIndex = 0;
+    selectedFileIndex = 0;
+    inFileSelection = true;
+    numFiles = 0;
   }
-  file.close();
-  return;
+}
 
-  while (file.available()) {
-    if (inFileSelection) {
-      continue;
-    }
-    if (!running) {
-      continue;
-    }
-
-    String line = file.readStringUntil('\n');
-    line.trim();
-    displayText(line);
-
-    if (line.startsWith("maxSpeed:")) {
-      int colonIndex = line.indexOf(":");
-      if (colonIndex != -1) {
-        String maxSpeedStr = line.substring(colonIndex + 1);
-        maxSpeed = maxSpeedStr.toInt();
-        stepper1.setMaxSpeed(maxSpeed);
-        stepper2.setMaxSpeed(maxSpeed);
-        Serial.print("Set maxSpeed: ");
-        Serial.println(maxSpeed);
-        continue;
-      }
-    }
-    else if (line.startsWith("PENUP:")) {
-      int colonIndex = line.indexOf(":");
-      if (colonIndex != -1) {
-        String servoPosStr = line.substring(colonIndex + 1);
-        servoPos = servoPosStr.toInt();
-        servoMotor.write(servoPos);
-        delay(1000);
-        continue;
-      }
-    }
-    else if (line.startsWith("PENDOWN:")) {
-      int colonIndex = line.indexOf(":");
-      if (colonIndex != -1) {
-        String servoPosStr = line.substring(colonIndex + 1);
-        servoPos = servoPosStr.toInt();
-        servoMotor.write(servoPos);
-        delay(1000);
-        continue;
-      }
-    }
-
-    int commaIndex = line.indexOf(",");
-
-    if (commaIndex != -1) {
-      String num1Str = line.substring(0, commaIndex);
-      String num2Str = line.substring(commaIndex + 1);
-
-      int num1 = num1Str.toInt();
-      int num2 = num2Str.toInt();
-
-      long positions[2];
-
-      positions[0] = num1;
-      positions[1] = num2;
-        
-      steppers.moveTo(positions);
-      steppers.runSpeedToPosition();
-    }
-  }
+void displayFinishScreen() {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SH110X_WHITE);
+  display.setCursor(0, 0);
+  display.println(file.name());
+  display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+  display.println("FINISH");
+  display.display();
 }
 
 void displayFiles(File file) {
@@ -163,7 +200,7 @@ void displayFiles(File file) {
 
   int fileIndex = 0;
   while (true) {
-    if (fileIndex == selectedFileIndex) {
+    if (fileIndex == highlightedFileIndex) {
       display.setTextColor(SH110X_BLACK, SH110X_WHITE);
     } else {
       display.setTextColor(SH110X_WHITE);
@@ -174,9 +211,11 @@ void displayFiles(File file) {
     }
 
     if (!entry.isDirectory()) {
-      display.print(entry.name());
-      display.print(" -- ");
-      display.println(entry.size());
+      display.println(entry.name());
+      fileIndex ++;
+      if (fileIndex > numFiles) {
+        numFiles = fileIndex;
+      }
     }
     entry.close();
   }
@@ -189,13 +228,17 @@ void displayText(String text) {
   display.setTextSize(1);
   display.setTextColor(SH110X_WHITE);
   display.setCursor(0, 0);
+  display.println(file.name());
+  
+  display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+  if (running) {
+    display.println("Pause");
+  } else {
+    display.println("Resume");
+  }
+  display.setTextColor(SH110X_WHITE);
   display.println(text);
-  display.print("Rotary direction: ");
-  display.println(encdir);
-  display.print("Rotary switch: ");
-  display.println(running);
-  display.print("Rotary counter: ");
-  display.println(counter);
+
   display.display();
 }
 
@@ -213,12 +256,17 @@ void checkEncoderState() {
     }
   }
   previousStateCLK = currentStateCLK;
+
+  if (inFileSelection) {
+    highlightedFileIndex = abs(int(counter/2)) % numFiles;
+  }
 }
 
 void checkEncoderSwitch() {
   currentStateSW = digitalRead(inputSW);
   if (inFileSelection) {
-    selectedFileIndex = int(counter/2);
+    selectedFileIndex = highlightedFileIndex;
+    inFileSelection = false;
   } else {
     running = !running;
   }

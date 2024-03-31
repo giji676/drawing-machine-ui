@@ -18,7 +18,7 @@ const int servoPin = 10;
 MultiStepper steppers;
 
 File file;
-const int chipSelect = 5;
+const int chipSelect = 13;
 
 int index = 0;
 int maxSpeed = 3000;  // Default maxSpeed
@@ -45,7 +45,7 @@ void setup() {
   pinMode(ms2, OUTPUT);
   
   digitalWrite(ms0, LOW);
-  digitalWrite(ms1, HIGH);
+  digitalWrite(ms1, LOW);
   digitalWrite(ms2, HIGH);
 
   stepper1.setMaxSpeed(maxSpeed);  stepper2.setMaxSpeed(maxSpeed);

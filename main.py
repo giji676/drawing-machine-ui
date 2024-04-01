@@ -20,8 +20,8 @@ import gcodeConvertor
 import pathMaker
 import toSteps
 
-# import waveSmoother
-# import waveSmootherStandalone
+import waveSmoother
+import waveSmootherStandalone
 
 GENERATED_FILES = "generated_files"
 
@@ -90,15 +90,14 @@ class WorkerThread(QThread):
             return None
 
         # Range of wave values: 0 = horizontal line, max = dense wave - hight amplitude and frequency
-        scaled_colour_range = 10
-        pixel_wave_size = 20
+        scaled_colour_range = 20
+        pixel_wave_size = 40
 
         max_amplitude = pixel_wave_size / 2
 
         pixels = np.array(image)
 
         # ======== WAVE WITH THE SMOOTHING FUNCTION ========
-        """
         wave_function_arr = waveSmoother.genWave(
             pixels
         )
@@ -114,11 +113,10 @@ class WorkerThread(QThread):
                 y_offset = y * pixel_wave_size + pixel_wave_size / 2
                 draw.line(((x, y_offset + processed_wave[y][x]), (x+1, y_offset + processed_wave[y][x+1])), fill=(0, 0, 0))
         return image
-        """
         # ======== END ========
 
         height, width = pixels.shape
-        new_height, new_width = height * 20, width * 20
+        new_height, new_width = height * pixel_wave_size, width * pixel_wave_size
 
         image = Image.new("RGB", (new_width, new_height), color="white")
         draw = ImageDraw.Draw(image)
@@ -139,14 +137,15 @@ class WorkerThread(QThread):
                 amplitude = 0
                 frequency = 0
 
-                pixels[y, n_x] = round(pixels[y, n_x] / 25.5)
+                pixels[y, n_x] = round(
+                    pixels[y, n_x] / ((2**8)/scaled_colour_range))
                 # If the pixel value is under half of the <scaled_colour_range> only increase the amplitude
                 if pixels[y, n_x] < scaled_colour_range / 2:
-                    frequency = 1
+                    frequency = 0
                     amplitude = pixels[y, n_x]
                 # If the pixel value is over half of the <scaled_colour_range> use max amplitude and increase frequency
                 else:
-                    frequency = pixels[y, n_x] - scaled_colour_range / 2 + 1
+                    frequency = pixels[y, n_x] - scaled_colour_range / 2
                     amplitude = max_amplitude
 
                 # For each pixel of the processed image, <pixel_wave_size> x <pixel_wave_size> "super pixel" is created, that holds the wave for that pixel
@@ -154,20 +153,22 @@ class WorkerThread(QThread):
                     n_i = i
                     n_offset = 1
                     if y % 2 != 0:
-                        n_i = 0 - i + 20
+                        n_i = 0 - i + pixel_wave_size
                         n_offset = -1
 
                     # Calculate the current pixel coordinates and the next pixel coordinates, so they can be joined with a line
                     x_pos = n_x * pixel_wave_size + n_i
                     y_pos = (y * pixel_wave_size + pixel_wave_size / 2) + (
-                        np.sin((n_i) / (pixel_wave_size / 2) * frequency * np.pi)
+                        np.sin((n_i) / (pixel_wave_size / 2)
+                               * frequency * np.pi)
                         * amplitude
                     )
 
                     next_x_pos = n_x * pixel_wave_size + n_i + n_offset
                     next_y_pos = (y * pixel_wave_size + pixel_wave_size / 2) + (
                         np.sin(
-                            (n_i + n_offset) / (pixel_wave_size / 2) * frequency * np.pi
+                            (n_i + n_offset) /
+                            (pixel_wave_size / 2) * frequency * np.pi
                         )
                         * amplitude
                     )
@@ -309,7 +310,8 @@ class ConfigurationCanvas(QWidget):
         )
 
         painter.drawEllipse(
-            int(penPosCalculated[0] - self.penEllipseDia / 2) + IMAGE_OFFSET[0],
+            int(penPosCalculated[0] -
+                self.penEllipseDia / 2) + IMAGE_OFFSET[0],
             penPosCalculated[1] + IMAGE_OFFSET[1],
             self.penEllipseDia,
             self.penEllipseDia,
@@ -399,7 +401,8 @@ class ProcessCanvas(QWidget):
                     int(original_pixel_value / scaling_factor) * scaling_factor
                 )
 
-                quantized_pixel_color = QColor(scaled_value, scaled_value, scaled_value)
+                quantized_pixel_color = QColor(
+                    scaled_value, scaled_value, scaled_value)
                 quantized_image.setPixelColor(x, y, quantized_pixel_color)
 
         self.inputImage = quantized_image
@@ -418,7 +421,8 @@ class ProcessCanvas(QWidget):
 
         if linker_result.returncode == 0:
 
-            image = pathMaker.pathMaker(tsp_path, cyc_path, output_coordinates_path)
+            image = pathMaker.pathMaker(
+                tsp_path, cyc_path, output_coordinates_path)
 
             image = image.convert("RGBA")
             data = image.tobytes("raw", "RGBA")
@@ -433,7 +437,7 @@ class ProcessCanvas(QWidget):
         if not os.path.exists(output_coordinates_path):
             return
         toSteps.convertToSteps(
-            settings, output_coordinates_path, output_steps_path, fit=False
+            settings, output_coordinates_path, output_steps_path, fit=True
         )
 
     def removeBg(self) -> None:
@@ -467,7 +471,8 @@ class ProcessCanvas(QWidget):
         if self.inputImage is None:
             return
 
-        self.inputImage = self.inputImage.convertToFormat(QImage.Format_Grayscale8)
+        self.inputImage = self.inputImage.convertToFormat(
+            QImage.Format_Grayscale8)
         self.update()
 
     def scale(self) -> None:
@@ -479,6 +484,11 @@ class ProcessCanvas(QWidget):
             int(self.inputImage.height() / self.imageScale),
         )
         self.update()
+
+    def saveImage(self) -> None:
+        if self.inputImage is None:
+            return
+        self.inputImage.save("test.png")
 
     # Mouse events for moving the image around and zooming in
     def wheelEvent(self, event):
@@ -528,6 +538,7 @@ class ProcessImage(QWidget):
         self.btnRemoveBG = QPushButton("Remove BG")
         self.btnMakePath = QPushButton("Make Path")
         self.btnConvertToSteps = QPushButton("Convert to steps")
+        self.btnSaveImage = QPushButton("Save Image")
 
         self.lblOutput = QLabel("Output")
         self.output_text_edit = QTextEdit()
@@ -542,10 +553,12 @@ class ProcessImage(QWidget):
         self.btnDither.clicked.connect(self.start_dither)
         self.btnWave.clicked.connect(self.start_wave)
         self.btnRemoveBG.clicked.connect(self.imageCanvas.removeBg)
-        self.btnColourScale.clicked.connect(self.imageCanvas.quantize_grayscale_image)
+        self.btnColourScale.clicked.connect(
+            self.imageCanvas.quantize_grayscale_image)
         self.btnMakePath.clicked.connect(self.start_linkern)
         self.btnConvertToSteps.clicked.connect(self.imageCanvas.convertToSteps)
         self.btnConvertToSteps.setObjectName("testBtn")
+        self.btnSaveImage.clicked.connect(self.imageCanvas.saveImage)
 
         self.vertical_spacer = QSpacerItem(
             0, 20, QSizePolicy.Fixed, QSizePolicy.Expanding
@@ -565,9 +578,10 @@ class ProcessImage(QWidget):
         lytInputs.addWidget(self.btnRemoveBG, 4, 1)
         lytInputs.addWidget(self.btnMakePath, 5, 0)
         lytInputs.addWidget(self.btnConvertToSteps, 5, 1)
+        lytInputs.addWidget(self.btnSaveImage, 6, 0)
 
-        lytInputs.addWidget(self.lblOutput, 6, 0)
-        lytInputs.addWidget(self.output_text_edit, 7, 0, 1, 2)
+        lytInputs.addWidget(self.lblOutput, 7, 0)
+        lytInputs.addWidget(self.output_text_edit, 8, 0, 1, 2)
 
         lytInputs.addItem(self.vertical_spacer)
 
@@ -713,16 +727,17 @@ class ProcessImage(QWidget):
 
             if line == "PENUP":
                 pen_down = False
-                flipped_image.append(line)
+                flipped_image.append(f"{line}\n")
             elif line == "PENDOWN":
                 pen_down = True
-                flipped_image.append(line)
+                flipped_image.append(f"{line}\n")
 
             else:
                 line = line.split()
                 n_x, n_y = float(line[0]), float(line[1])
                 if pen_down:
-                    draw.line(((x, max_y - y), (n_x, max_y - n_y)), fill=(0, 0, 0))
+                    draw.line(((x, max_y - y), (n_x, max_y - n_y)),
+                              fill=(0, 0, 0))
                 flipped_image.append(f"{x} {max_y - y}\n")
 
                 x, y = n_x, n_y
@@ -840,7 +855,8 @@ class ConfigureMachine(QWidget):
 
     def processSettings(self) -> None:
         # Sets the settings to the values of the input fields
-        self.settings["beltToothDistance"] = int(self.txtBeltToothDistance.text())
+        self.settings["beltToothDistance"] = int(
+            self.txtBeltToothDistance.text())
         self.settings["toothOngear"] = int(self.txtToothOnGear.text())
         self.settings["stepsPerRev"] = int(self.txtStepsPerRev.text())
         self.settings["motorDir"] = [

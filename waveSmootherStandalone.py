@@ -46,7 +46,7 @@ def smooth(x_smoothed, a, b, x1, x2, f1, a1, f2, a2):
     ) * wave(x_smoothed, f2, a2)
 
 
-smoothing_start, smoothing_finish = pixel_size - 8, pixel_size + 8
+smoothing_start, smoothing_finish = pixel_size - 10, pixel_size + 10
 
 
 def process(arr):

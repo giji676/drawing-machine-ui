@@ -1,10 +1,11 @@
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 from rembg import remove
 
 
 def apply_jarvis_judice_ninke_dithering(image, tsp_path):
     grayscale_image = image.convert("L")
+    grayscale_image = ImageOps.invert(grayscale_image)
 
     input_pixels = np.array(grayscale_image)
 

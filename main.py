@@ -738,7 +738,7 @@ class ProcessImage(QWidget):
                 if pen_down:
                     draw.line(((x, max_y - y), (n_x, max_y - n_y)),
                               fill=(0, 0, 0))
-                flipped_image.append(f"{x} {max_y - y}\n")
+                flipped_image.append(f"{n_x} {max_y - n_y}\n")
 
                 x, y = n_x, n_y
 

@@ -121,7 +121,6 @@ def convertToSteps(settings, input_file, output_file, fit=False):
         s_current_distance = [round(s_new_distance[0]), round(s_new_distance[1])]
         return s_change
 
-    s_motor_current_offset = [0, 0]
 
     image_offset = [0, 0]
     new_max = [s_paper_dimensions[0], s_paper_dimensions[1]]
@@ -142,19 +141,10 @@ def convertToSteps(settings, input_file, output_file, fit=False):
             new_max = [max_x * (s_paper_dimensions[1] / max_y), s_paper_dimensions[1]]
             image_offset = [(s_paper_dimensions[0] / 2) - (new_max[0] / 2), 0]
 
-    f = open(output_file, "w")
-
-    for img in imgs:
-        if img == "PENUP":
-            f.write(f"{img}:45\n")
-            continue
-        if img == "PENDOWN":
-            f.write(f"{img}:0\n")
-            continue
-
-        img = [
+    def writePos(pos, f, s_motor_current_offset):
+        pos = [
             remap(
-                img[0],
+                pos[0],
                 0,
                 max_x,
                 s_paper_offset_calculated[0],
@@ -162,7 +152,7 @@ def convertToSteps(settings, input_file, output_file, fit=False):
             )
             + image_offset[0],
             remap(
-                img[1],
+                pos[1],
                 0,
                 max_y,
                 s_paper_offset_calculated[1],
@@ -171,7 +161,7 @@ def convertToSteps(settings, input_file, output_file, fit=False):
             + image_offset[1],
         ]
 
-        values = calculate(img)
+        values = calculate(pos)
 
         s_motor_current_offset = [
             round(s_motor_current_offset[0] + values[0]),
@@ -186,5 +176,63 @@ def convertToSteps(settings, input_file, output_file, fit=False):
         )
 
         f.write(uno_input)
+        return s_motor_current_offset
+
+    s_motor_current_offset = [0, 0]
+    f = open(output_file, "w")
+
+    min_dist_for_servo = 20
+    pen_down = False
+    last_pos = [0, 0]
+    last_line = None
+    first = True
+    hit_penup = False
+
+    for line in imgs:
+        if line == "PENUP" and first:
+            if line == last_line:
+                continue
+            # f.write(f"{line}:45\n")
+            pen_down = False
+            last_line = line
+            continue
+        if line == "PENDOWN":
+            if pen_down:
+                continue
+            f.write(f"{line}:0\n")
+            pen_down = True
+            last_line = line
+            continue
+        if first:
+            s_motor_current_offset = writePos(line, f, s_motor_current_offset)
+            last_pos = line
+            first = False
+            last_line = line
+            continue
+        if line == "PENUP":
+            if line == last_line:
+                continue
+            hit_penup = True
+            continue
+        if hit_penup:
+            hit_penup = False
+            dist = math.sqrt((line[0] - last_pos[0])**2 + (line[1] - last_pos[1])**2)
+            if dist < min_dist_for_servo:
+                f.write("PENUP:45\n")
+                s_motor_current_offset = writePos(line, f, s_motor_current_offset)
+                last_pos = line
+                last_line = line
+                pen_down = False
+                continue
+            else:
+                s_motor_current_offset = writePos(line, f, s_motor_current_offset)
+                last_pos = line
+                last_line = line
+                continue
+        s_motor_current_offset = writePos(line, f, s_motor_current_offset)
+        last_pos = line
+        last_line = line
+
+    f.write("PENUP:45\n")
     f.close()
     print("done")

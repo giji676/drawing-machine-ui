@@ -119,7 +119,9 @@ class WorkerThread(QThread):
 
             for y in range(len(processed_wave)):
                 for x in range(processed_width-1):
-                    self.update_signal.emit(f"{y}/{x}, {str(round(time.time() - start_time, 3))}")
+                    self.update_signal.emit(
+                        f"{str((y*width)+int(x/pixel_wave_size)+1)}/{str(height*width)}, {str(round(time.time() - start_time, 3))}"
+                    )
 
                     y_offset = y * pixel_wave_size + pixel_wave_size / 2
                     draw.line(((x, y_offset + processed_wave[y][x]), (x+1, y_offset + processed_wave[y][x+1])), fill=(0, 0, 0))
@@ -133,16 +135,14 @@ class WorkerThread(QThread):
             return image
 
         new_height, new_width = height * pixel_wave_size, width * pixel_wave_size
-        print(new_height, new_width)
 
         image = Image.new("RGB", (new_width, new_height), color="white")
         draw = ImageDraw.Draw(image)
 
-
         for y in range(height):
             for x in range(width):
                 self.update_signal.emit(
-                    f"{str((y*width)+x)}/{str(height*width)}, {str(round(time.time() - start_time, 3))}"
+                    f"{str((y*width)+x)}/{str(height*width-1)}, {str(round(time.time() - start_time, 3))}"
                 )
                 n_x = x
                 # Every other y level needs to start from the end so the other of the horizontal lines is: left-right-right-left...

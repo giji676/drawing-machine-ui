@@ -12,7 +12,7 @@ from PyQt5.QtGui import QColor, QImage, QPainter, QPen, QPixmap, QTransform
 from PyQt5.QtWidgets import (QApplication, QFileDialog, QGridLayout,
                              QHBoxLayout, QLabel, QLineEdit, QMainWindow,
                              QPushButton, QSizePolicy, QSpacerItem, QTabWidget,
-                             QTextEdit, QWidget)
+                             QTextEdit, QWidget, QCheckBox)
 from rembg import remove
 
 import dithering
@@ -72,6 +72,7 @@ class WorkerThread(QThread):
         self.result = None
         self.image = None
         self.function_type = None
+        self.wave_smooth = None
 
     def run(self):
         # Called by QThread automatically when WorkerThread.start() is called
@@ -89,6 +90,11 @@ class WorkerThread(QThread):
         if not image:
             return None
 
+        f = open(output_coordinates_path, "w")
+
+        self.update_signal.emit("Starting conversion to wave")
+        start_time = time.time()
+
         # Range of wave values: 0 = horizontal line, max = dense wave - hight amplitude and frequency
         scaled_colour_range = 20
         pixel_wave_size = 40
@@ -96,24 +102,36 @@ class WorkerThread(QThread):
         max_amplitude = pixel_wave_size / 2
 
         pixels = np.array(image)
+        
+        if self.wave_smooth:
+            wave_function_arr = waveSmoother.genWave(
+                pixels
+            )
 
-        # ======== WAVE WITH THE SMOOTHING FUNCTION ========
-        wave_function_arr = waveSmoother.genWave(
-            pixels
-        )
-        processed_wave = waveSmootherStandalone.process(wave_function_arr)
-        processed_height, processed_width = len(processed_wave) * pixel_wave_size, len(
-            processed_wave[0]
-        )
+            height, width = len(wave_function_arr), len(wave_function_arr[0])
 
-        image = Image.new("RGB", (processed_height, processed_width), color="white")
-        draw = ImageDraw.Draw(image)
-        for y in range(len(processed_wave)):
-            for x in range(processed_width-1):
-                y_offset = y * pixel_wave_size + pixel_wave_size / 2
-                draw.line(((x, y_offset + processed_wave[y][x]), (x+1, y_offset + processed_wave[y][x+1])), fill=(0, 0, 0))
-        return image
-        # ======== END ========
+            processed_wave = waveSmootherStandalone.process(wave_function_arr)
+            processed_height, processed_width = len(processed_wave) * pixel_wave_size, len(
+                processed_wave[0]
+            )
+
+            image = Image.new("RGB", (processed_height, processed_width), color="white")
+            draw = ImageDraw.Draw(image)
+
+            for y in range(len(processed_wave)):
+                for x in range(processed_width-1):
+                    self.update_signal.emit(f"{str((y*width)+x)}/{str(height*width)}, {str(round(time.time() - start_time, 3))}")
+
+                    y_offset = y * pixel_wave_size + pixel_wave_size / 2
+                    draw.line(((x, y_offset + processed_wave[y][x]), (x+1, y_offset + processed_wave[y][x+1])), fill=(0, 0, 0))
+
+                    f.write(str(x) + " " + str(round(y_offset + processed_wave[y][x])) + "\n")
+
+            f.close()
+            self.result = (f"\nTotal run time: {round(time.time() - start_time, 3)} seconds\n")
+            self.finish_signal.emit()
+
+            return image
 
         height, width = pixels.shape
         new_height, new_width = height * pixel_wave_size, width * pixel_wave_size
@@ -121,10 +139,7 @@ class WorkerThread(QThread):
         image = Image.new("RGB", (new_width, new_height), color="white")
         draw = ImageDraw.Draw(image)
 
-        f = open(output_coordinates_path, "w")
 
-        self.update_signal.emit("Starting conversion to wave")
-        start_time = time.time()
         for y in range(height):
             for x in range(width):
                 self.update_signal.emit(
@@ -539,6 +554,7 @@ class ProcessImage(QWidget):
         self.btnMakePath = QPushButton("Make Path")
         self.btnConvertToSteps = QPushButton("Convert to steps")
         self.btnSaveImage = QPushButton("Save Image")
+        self.cbxWaveSmooth = QCheckBox("Use Wave Smoother")
 
         self.lblOutput = QLabel("Output")
         self.output_text_edit = QTextEdit()
@@ -554,11 +570,12 @@ class ProcessImage(QWidget):
         self.btnWave.clicked.connect(self.start_wave)
         self.btnRemoveBG.clicked.connect(self.imageCanvas.removeBg)
         self.btnColourScale.clicked.connect(
-            self.imageCanvas.quantize_grayscale_image)
+        self.imageCanvas.quantize_grayscale_image)
         self.btnMakePath.clicked.connect(self.start_linkern)
         self.btnConvertToSteps.clicked.connect(self.imageCanvas.convertToSteps)
         self.btnConvertToSteps.setObjectName("testBtn")
         self.btnSaveImage.clicked.connect(self.imageCanvas.saveImage)
+        
 
         self.vertical_spacer = QSpacerItem(
             0, 20, QSizePolicy.Fixed, QSizePolicy.Expanding
@@ -579,9 +596,10 @@ class ProcessImage(QWidget):
         lytInputs.addWidget(self.btnMakePath, 5, 0)
         lytInputs.addWidget(self.btnConvertToSteps, 5, 1)
         lytInputs.addWidget(self.btnSaveImage, 6, 0)
+        lytInputs.addWidget(self.cbxWaveSmooth, 6, 1)
 
-        lytInputs.addWidget(self.lblOutput, 7, 0)
-        lytInputs.addWidget(self.output_text_edit, 8, 0, 1, 2)
+        lytInputs.addWidget(self.lblOutput, 9, 0)
+        lytInputs.addWidget(self.output_text_edit, 10, 0, 1, 2)
 
         lytInputs.addItem(self.vertical_spacer)
 
@@ -612,6 +630,7 @@ class ProcessImage(QWidget):
         image = ImageOps.invert(image)
 
         self.worker_thread.function_type = FunctionTypeEnum.WAVE
+        self.worker_thread.wave_smooth = self.cbxWaveSmooth.isChecked()
         self.worker_thread.image = image
         self.worker_thread.start()
 

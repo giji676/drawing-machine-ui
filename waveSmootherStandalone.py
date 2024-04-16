@@ -46,7 +46,10 @@ def smooth(x_smoothed, a, b, x1, x2, f1, a1, f2, a2):
     ) * wave(x_smoothed, f2, a2)
 
 
-smoothing_start, smoothing_finish = pixel_size - 10, pixel_size + 10
+smoothing_start, smoothing_finish = pixel_size - pixel_size/2, pixel_size + pixel_size/2
+initial_append = [0, pixel_size + pixel_size/2]
+intermidiet_append = [pixel_size/2, pixel_size/2+pixel_size]
+end_append = [pixel_size/2, pixel_size + pixel_size/2]
 
 
 def process(arr):
@@ -54,8 +57,14 @@ def process(arr):
     for j in range(len(arr)):
         processed_wave_row = []
         for i in range(len(arr[j]) - 1):
-            f1, a1 = arr[j][i]
-            f2, a2 = arr[j][i + 1]
+            n_offset = 1
+            n_i = i
+            if j % 2 != 0:
+                n_i = (len(arr[j]) - 1) - i
+                n_offset = -1
+
+            f1, a1 = arr[j][n_i]
+            f2, a2 = arr[j][n_i + n_offset]
             x1 = np.linspace(minX, fEnd - 1, pixel_size)
             x2 = np.linspace(gStart, maxX - 1, pixel_size)
 
@@ -63,7 +72,14 @@ def process(arr):
             y_smoothed = smooth(
                 x_smoothed, smoothing_start, smoothing_finish, x1, x2, f1, a1, f2, a2
             )
-            for val in y_smoothed:
-                processed_wave_row.append(val)
+            if i == 0:
+                current_range = initial_append
+            elif i == len(arr[j])-1-1:
+                current_range = end_append
+            else:
+                current_range = intermidiet_append
+
+            for val in range(int(current_range[0]), int(current_range[1])):
+                processed_wave_row.append(y_smoothed[val])
         processed_wave.append(processed_wave_row)
     return processed_wave

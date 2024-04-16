@@ -96,31 +96,30 @@ class WorkerThread(QThread):
         start_time = time.time()
 
         # Range of wave values: 0 = horizontal line, max = dense wave - hight amplitude and frequency
-        scaled_colour_range = 20
-        pixel_wave_size = 40
+        scaled_colour_range = 10
+        pixel_wave_size = 20
 
         max_amplitude = pixel_wave_size / 2
 
         pixels = np.array(image)
-        
+        height, width = pixels.shape
+
         if self.wave_smooth:
             wave_function_arr = waveSmoother.genWave(
                 pixels
             )
-
-            height, width = len(wave_function_arr), len(wave_function_arr[0])
 
             processed_wave = waveSmootherStandalone.process(wave_function_arr)
             processed_height, processed_width = len(processed_wave) * pixel_wave_size, len(
                 processed_wave[0]
             )
 
-            image = Image.new("RGB", (processed_height, processed_width), color="white")
+            image = Image.new("RGB", (processed_width, processed_height), color="white")
             draw = ImageDraw.Draw(image)
 
             for y in range(len(processed_wave)):
                 for x in range(processed_width-1):
-                    self.update_signal.emit(f"{str((y*width)+x)}/{str(height*width)}, {str(round(time.time() - start_time, 3))}")
+                    self.update_signal.emit(f"{y}/{x}, {str(round(time.time() - start_time, 3))}")
 
                     y_offset = y * pixel_wave_size + pixel_wave_size / 2
                     draw.line(((x, y_offset + processed_wave[y][x]), (x+1, y_offset + processed_wave[y][x+1])), fill=(0, 0, 0))
@@ -133,8 +132,8 @@ class WorkerThread(QThread):
 
             return image
 
-        height, width = pixels.shape
         new_height, new_width = height * pixel_wave_size, width * pixel_wave_size
+        print(new_height, new_width)
 
         image = Image.new("RGB", (new_width, new_height), color="white")
         draw = ImageDraw.Draw(image)

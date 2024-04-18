@@ -26,6 +26,5 @@ class GcodeObject:
 def parseLine(line: str) -> GcodeObject:
     result = GcodeObject()
     for letter in line:
-        if 
         pass
     return result

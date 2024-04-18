@@ -191,8 +191,6 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
     raw_penup_counter = 0
     processed_penup_counter = 0
 
-    putput_txt = ""
-
     if min_pen_pickup:
         for line in imgs:
             if line == "PENUP" and first:

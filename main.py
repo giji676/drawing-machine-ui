@@ -225,7 +225,7 @@ class WorkerThread(QThread):
     def dither(self, image) -> Image:
         start_time = time.time()
         self.update_signal.emit("Starting dithering")
-        image = dithering.apply_jarvis_judice_ninke_dithering(image, tsp_path)
+        image = dithering.applyDithering(image, tsp_path)
         self.result = f"\nTotal run time: {time.time() - start_time} seconds\n"
         self.finish_signal.emit()
         return image
@@ -239,8 +239,8 @@ class ConfigurationCanvas(QWidget):
     def __init__(self):
         super().__init__()
         self.setGeometry(100, 100, 400, 400)
-        self.scale_factor = 1.0
         self.setMouseTracking(True)
+        self.scale_factor = 1.0
         self.dragging = False
         self.start_pos = QPoint()
         self.cur_pos = QPoint()
@@ -249,8 +249,8 @@ class ConfigurationCanvas(QWidget):
 
         self.settings = None
 
-        self.motorEllipseDia = 14
-        self.penEllipseDia = 8
+        self.motor_ellipse_dia = 14
+        self.pen_ellipse_dia = 8
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -265,24 +265,24 @@ class ConfigurationCanvas(QWidget):
         self.m2 = [self.m1[0] + self.settings["distanceBetweenMotors"], 0]
 
         painter.drawEllipse(
-            int(self.m1[0] - self.motorEllipseDia / 2) + IMAGE_OFFSET[0],
+            int(self.m1[0] - self.motor_ellipse_dia / 2) + IMAGE_OFFSET[0],
             self.m1[1] + IMAGE_OFFSET[1],
-            self.motorEllipseDia,
-            self.motorEllipseDia,
+            self.motor_ellipse_dia,
+            self.motor_ellipse_dia,
         )
         painter.drawEllipse(
-            int(self.m2[0] - self.motorEllipseDia / 2) + IMAGE_OFFSET[0],
+            int(self.m2[0] - self.motor_ellipse_dia / 2) + IMAGE_OFFSET[0],
             self.m2[1] + IMAGE_OFFSET[1],
-            self.motorEllipseDia,
-            self.motorEllipseDia,
+            self.motor_ellipse_dia,
+            self.motor_ellipse_dia,
         )
 
-        paperOffsetCalculated = [0, 0]
-        penPosCalculated = [0, 0]
+        paper_offset_calculated = [0, 0]
+        pen_pos_calculated = [0, 0]
         if (self.settings["startDistance"][0] ** 2) - (
             (self.settings["distanceBetweenMotors"] / 2) ** 2
         ) > 0:
-            paperOffsetCalculated = [
+            paper_offset_calculated = [
                 round(
                     (
                         (self.settings["distanceBetweenMotors"] / 2)
@@ -300,7 +300,7 @@ class ConfigurationCanvas(QWidget):
                     )
                 ),
             ]
-            penPosCalculated = [
+            pen_pos_calculated = [
                 round(self.settings["distanceBetweenMotors"] / 2),
                 round(
                     math.sqrt(
@@ -311,29 +311,29 @@ class ConfigurationCanvas(QWidget):
             ]
 
         painter.drawLine(
-            int(self.m1[0] + self.motorEllipseDia / 2 + IMAGE_OFFSET[0]),
-            int(self.m1[1] + self.motorEllipseDia / 2 + IMAGE_OFFSET[1]),
-            penPosCalculated[0] + IMAGE_OFFSET[0],
-            penPosCalculated[1] + IMAGE_OFFSET[1],
+            int(self.m1[0] + self.motor_ellipse_dia / 2 + IMAGE_OFFSET[0]),
+            int(self.m1[1] + self.motor_ellipse_dia / 2 + IMAGE_OFFSET[1]),
+            pen_pos_calculated[0] + IMAGE_OFFSET[0],
+            pen_pos_calculated[1] + IMAGE_OFFSET[1],
         )
         painter.drawLine(
-            int(self.m2[0] - self.motorEllipseDia / 2 + IMAGE_OFFSET[0]),
-            int(self.m2[1] + self.motorEllipseDia / 2 + IMAGE_OFFSET[1]),
-            penPosCalculated[0] + IMAGE_OFFSET[0],
-            penPosCalculated[1] + IMAGE_OFFSET[1],
+            int(self.m2[0] - self.motor_ellipse_dia / 2 + IMAGE_OFFSET[0]),
+            int(self.m2[1] + self.motor_ellipse_dia / 2 + IMAGE_OFFSET[1]),
+            pen_pos_calculated[0] + IMAGE_OFFSET[0],
+            pen_pos_calculated[1] + IMAGE_OFFSET[1],
         )
 
         painter.drawEllipse(
-            int(penPosCalculated[0] -
-                self.penEllipseDia / 2) + IMAGE_OFFSET[0],
-            penPosCalculated[1] + IMAGE_OFFSET[1],
-            self.penEllipseDia,
-            self.penEllipseDia,
+            int(pen_pos_calculated[0] -
+                self.pen_ellipse_dia / 2) + IMAGE_OFFSET[0],
+            pen_pos_calculated[1] + IMAGE_OFFSET[1],
+            self.pen_ellipse_dia,
+            self.pen_ellipse_dia,
         )
 
         painter.drawRect(
-            paperOffsetCalculated[0] + IMAGE_OFFSET[0],
-            paperOffsetCalculated[1] + IMAGE_OFFSET[1],
+            paper_offset_calculated[0] + IMAGE_OFFSET[0],
+            paper_offset_calculated[1] + IMAGE_OFFSET[1],
             self.settings["paperSize"][0],
             self.settings["paperSize"][1],
         )
@@ -381,16 +381,16 @@ class ProcessCanvas(QWidget):
         self.last_pos = QPoint()
         self.delta = QPoint()
 
-        self.processImage = None
+        self.process_image_window = None
 
-        self.imageScale = 1
+        self.image_scale = 1
 
-        self.inputImage = None
-        self.processedImage = None
+        self.input_image = None
+        self.processed_image = None
 
     def paintEvent(self, event) -> None:
         # QTs function, updates the canvas
-        if self.inputImage is None:
+        if self.input_image is None:
             return
 
         painter = QPainter(self)
@@ -398,16 +398,16 @@ class ProcessCanvas(QWidget):
         transform.scale(self.scale_factor, self.scale_factor)
         transform.translate(self.cur_pos.x(), self.cur_pos.y())
         painter.setTransform(transform)
-        painter.drawPixmap(0, 0, QPixmap.fromImage(self.inputImage))
+        painter.drawPixmap(0, 0, QPixmap.fromImage(self.input_image))
 
-    def quantize_grayscale_image(self) -> None:
-        if self.inputImage is None:
+    def quantizeGrayscaleImage(self) -> None:
+        if self.input_image is None:
             return
         # Sets the grayscale image colour range to <num_colors> - so instead of 255 colour values it only has <num_colors> amount
         num_colors = 10
         scaling_factor = 255 / (num_colors - 1)
 
-        quantized_image = self.inputImage.copy()
+        quantized_image = self.input_image.copy()
 
         for x in range(quantized_image.width()):
             for y in range(quantized_image.height()):
@@ -421,14 +421,14 @@ class ProcessCanvas(QWidget):
                     scaled_value, scaled_value, scaled_value)
                 quantized_image.setPixelColor(x, y, quantized_pixel_color)
 
-        self.inputImage = quantized_image
+        self.input_image = quantized_image
         self.update()
 
     def loadImage(self, path: str) -> None:
         if not os.path.exists(path):
             return
 
-        self.inputImage = QImage(path)
+        self.input_image = QImage(path)
         self.update()
 
     def makePath(self, linker_result: subprocess.CompletedProcess) -> None:
@@ -443,7 +443,7 @@ class ProcessCanvas(QWidget):
             image = image.convert("RGBA")
             data = image.tobytes("raw", "RGBA")
 
-            self.inputImage = QImage(
+            self.input_image = QImage(
                 data, image.size[0], image.size[1], QImage.Format_RGBA8888
             )
             self.update()
@@ -453,17 +453,17 @@ class ProcessCanvas(QWidget):
         if not os.path.exists(output_coordinates_path):
             return
         steps_output = toSteps.convertToSteps(
-            settings, output_coordinates_path, output_steps_path, fit=True, min_pen_pickup=self.processImage.cbxMinPenPickup.isChecked()
+            settings, output_coordinates_path, output_steps_path, fit=True, min_pen_pickup=self.process_image_window.cbxMinPenPickup.isChecked()
         )
         if steps_output:
-            self.processImage.update_output(steps_output)
+            self.process_image_window.update_output(steps_output)
 
     def removeBg(self) -> None:
         # Removes the background of the image, and replaces it with white background instead of transparent
-        if self.inputImage is None:
+        if self.input_image is None:
             return
 
-        image = Image.fromqpixmap(self.inputImage)
+        image = Image.fromqpixmap(self.input_image)
         image = remove(image)
 
         jpg_image = Image.new("RGB", image.size, "white")
@@ -472,41 +472,41 @@ class ProcessCanvas(QWidget):
 
         image = image.convert("RGBA")
         data = image.tobytes("raw", "RGBA")
-        self.inputImage = QImage(
+        self.input_image = QImage(
             data, image.size[0], image.size[1], QImage.Format_RGBA8888
         )
         self.update()
 
     def rotate90(self) -> None:
-        if self.inputImage is None:
+        if self.input_image is None:
             return
 
-        self.inputImage = self.inputImage.transformed(QTransform().rotate(90))
+        self.input_image = self.input_image.transformed(QTransform().rotate(90))
         self.update()
 
     def grayscale(self) -> None:
         # Converts the image to grayscale
-        if self.inputImage is None:
+        if self.input_image is None:
             return
 
-        self.inputImage = self.inputImage.convertToFormat(
+        self.input_image = self.input_image.convertToFormat(
             QImage.Format_Grayscale8)
         self.update()
 
     def scale(self) -> None:
-        if self.inputImage is None:
+        if self.input_image is None:
             return
 
-        self.inputImage = self.inputImage.scaled(
-            int(self.inputImage.width() / self.imageScale),
-            int(self.inputImage.height() / self.imageScale),
+        self.input_image = self.input_image.scaled(
+            int(self.input_image.width() / self.image_scale),
+            int(self.input_image.height() / self.image_scale),
         )
         self.update()
 
     def saveImage(self) -> None:
-        if self.inputImage is None:
+        if self.input_image is None:
             return
-        self.inputImage.save("test.png")
+        self.input_image.save("test.png")
 
     # Mouse events for moving the image around and zooming in
     def wheelEvent(self, event):
@@ -539,47 +539,47 @@ class ProcessImage(QWidget):
         self.setupUI()
 
     def setupUI(self) -> None:
-        leftInputs = QWidget()
-        leftInputs.setStyleSheet("background-color: #EEE;")
-        self.imageCanvas = ProcessCanvas()
-        self.imageCanvas.processImage = self
+        self.left_input_panel = QWidget()
+        self.left_input_panel.setStyleSheet("background-color: #EEE;")
+        self.image_canvas = ProcessCanvas()
+        self.image_canvas.process_image_window = self
 
         # Creating the lables and inputs
-        self.btnOpenImage = QPushButton("Open Image")
-        self.btnClearAll = QPushButton("Clear All")
-        self.txtScale = QLineEdit("2")
-        self.btnRotate90 = QPushButton("Rotate")
-        self.btnScale = QPushButton("Scale")
-        self.btnGrayscale = QPushButton("Grayscale")
-        self.btnColourScale = QPushButton("Colour scale")
-        self.btnDither = QPushButton("Dither")
-        self.btnWave = QPushButton("Wave")
-        self.btnRemoveBG = QPushButton("Remove BG")
-        self.btnMakePath = QPushButton("Make Path")
-        self.btnConvertToSteps = QPushButton("Convert to steps")
-        self.btnSaveImage = QPushButton("Save Image")
-        self.cbxWaveSmooth = QCheckBox("Use Wave Smoother")
-        self.cbxMinPenPickup = QCheckBox("Use Minimum Pen Pickup Distance")
+        self.btn_open_image = QPushButton("Open Image")
+        self.btn_clear_all = QPushButton("Clear All")
+        self.txt_scale = QLineEdit("2")
+        self.btn_rotate_90 = QPushButton("Rotate")
+        self.btn_scale = QPushButton("Scale")
+        self.btn_grayscale = QPushButton("Grayscale")
+        self.btn_colourscale = QPushButton("Colour scale")
+        self.btn_dither = QPushButton("Dither")
+        self.btn_wave = QPushButton("Wave")
+        self.btn_remove_BG = QPushButton("Remove BG")
+        self.btn_make_path = QPushButton("Make Path")
+        self.btn_convert_to_steps = QPushButton("Convert to steps")
+        self.btn_save_image = QPushButton("Save Image")
+        self.cbx_wave_smooth = QCheckBox("Use Wave Smoother")
+        self.cbx_min_pen_pickup = QCheckBox("Use Minimum Pen Pickup Distance")
 
-        self.lblOutput = QLabel("Output")
+        self.lbl_output = QLabel("Output")
         self.output_text_edit = QTextEdit()
         self.output_text_edit.setReadOnly(True)
 
         # Connecting the inputs to their functions
-        self.btnOpenImage.clicked.connect(self.openImage)
-        self.btnClearAll.clicked.connect(self.clearAll)
-        self.btnRotate90.clicked.connect(self.imageCanvas.rotate90)
-        self.btnScale.clicked.connect(self.scaleImage)
-        self.btnGrayscale.clicked.connect(self.imageCanvas.grayscale)
-        self.btnDither.clicked.connect(self.start_dither)
-        self.btnWave.clicked.connect(self.start_wave)
-        self.btnRemoveBG.clicked.connect(self.imageCanvas.removeBg)
-        self.btnColourScale.clicked.connect(
-        self.imageCanvas.quantize_grayscale_image)
-        self.btnMakePath.clicked.connect(self.start_linkern)
-        self.btnConvertToSteps.clicked.connect(self.imageCanvas.convertToSteps)
-        self.btnConvertToSteps.setObjectName("testBtn")
-        self.btnSaveImage.clicked.connect(self.imageCanvas.saveImage)
+        self.btn_open_image.clicked.connect(self.openImage)
+        self.btn_clear_all.clicked.connect(self.clearAll)
+        self.btn_rotate_90.clicked.connect(self.image_canvas.rotate90)
+        self.btn_scale.clicked.connect(self.scaleImage)
+        self.btn_grayscale.clicked.connect(self.image_canvas.grayscale)
+        self.btn_dither.clicked.connect(self.startDither)
+        self.btn_wave.clicked.connect(self.startWave)
+        self.btn_remove_BG.clicked.connect(self.image_canvas.removeBg)
+        self.btn_colourscale.clicked.connect(
+        self.image_canvas.quantizeGrayscaleImage)
+        self.btn_make_path.clicked.connect(self.startLinkern)
+        self.btn_convert_to_steps.clicked.connect(self.image_canvas.convertToSteps)
+        self.btn_convert_to_steps.setObjectName("testBtn")
+        self.btn_save_image.clicked.connect(self.image_canvas.saveImage)
         
 
         self.vertical_spacer = QSpacerItem(
@@ -587,121 +587,121 @@ class ProcessImage(QWidget):
         )
 
         # Adding the lables and inputs to the layout
-        lytInputs = QGridLayout()
-        lytInputs.addWidget(self.btnOpenImage, 0, 0)
-        lytInputs.addWidget(self.btnClearAll, 0, 1)
-        lytInputs.addWidget(self.btnScale, 1, 0)
-        lytInputs.addWidget(self.txtScale, 1, 1)
-        lytInputs.addWidget(self.btnRotate90, 2, 0)
-        lytInputs.addWidget(self.btnGrayscale, 2, 1)
-        lytInputs.addWidget(self.btnColourScale, 3, 0)
-        lytInputs.addWidget(self.btnDither, 3, 1)
-        lytInputs.addWidget(self.btnWave, 4, 0)
-        lytInputs.addWidget(self.btnRemoveBG, 4, 1)
-        lytInputs.addWidget(self.btnMakePath, 5, 0)
-        lytInputs.addWidget(self.btnConvertToSteps, 5, 1)
-        lytInputs.addWidget(self.btnSaveImage, 6, 0)
-        lytInputs.addWidget(self.cbxWaveSmooth, 6, 1)
-        lytInputs.addWidget(self.cbxMinPenPickup, 7, 0)
+        self.lyt_inputs = QGridLayout()
+        self.lyt_inputs.addWidget(self.btn_open_image, 0, 0)
+        self.lyt_inputs.addWidget(self.btn_clear_all, 0, 1)
+        self.lyt_inputs.addWidget(self.btn_scale, 1, 0)
+        self.lyt_inputs.addWidget(self.txt_scale, 1, 1)
+        self.lyt_inputs.addWidget(self.btn_rotate_90, 2, 0)
+        self.lyt_inputs.addWidget(self.btn_grayscale, 2, 1)
+        self.lyt_inputs.addWidget(self.btn_colourscale, 3, 0)
+        self.lyt_inputs.addWidget(self.btn_dither, 3, 1)
+        self.lyt_inputs.addWidget(self.btn_wave, 4, 0)
+        self.lyt_inputs.addWidget(self.btn_remove_BG, 4, 1)
+        self.lyt_inputs.addWidget(self.btn_make_path, 5, 0)
+        self.lyt_inputs.addWidget(self.btn_convert_to_steps, 5, 1)
+        self.lyt_inputs.addWidget(self.btn_save_image, 6, 0)
+        self.lyt_inputs.addWidget(self.cbx_wave_smooth, 6, 1)
+        self.lyt_inputs.addWidget(self.cbx_min_pen_pickup, 7, 0)
 
-        lytInputs.addWidget(self.lblOutput, 9, 0)
-        lytInputs.addWidget(self.output_text_edit, 10, 0, 1, 2)
+        self.lyt_inputs.addWidget(self.lbl_output, 9, 0)
+        self.lyt_inputs.addWidget(self.output_text_edit, 10, 0, 1, 2)
 
-        lytInputs.addItem(self.vertical_spacer)
+        self.lyt_inputs.addItem(self.vertical_spacer)
 
-        leftInputs.setLayout(lytInputs)
+        self.left_input_panel.setLayout(self.lyt_inputs)
 
-        lytTabProcessImage = QHBoxLayout()
-        lytTabProcessImage.addWidget(leftInputs)
-        lytTabProcessImage.addWidget(self.imageCanvas)
-        lytTabProcessImage.setStretchFactor(leftInputs, 2)
-        lytTabProcessImage.setStretchFactor(self.imageCanvas, 7)
+        self.lyt_process_image_tab = QHBoxLayout()
+        self.lyt_process_image_tab.addWidget(self.left_input_panel)
+        self.lyt_process_image_tab.addWidget(self.image_canvas)
+        self.lyt_process_image_tab.setStretchFactor(self.left_input_panel, 2)
+        self.lyt_process_image_tab.setStretchFactor(self.image_canvas, 7)
 
         self.worker_thread = WorkerThread()
-        self.worker_thread.update_signal.connect(self.update_output)
-        self.worker_thread.finish_signal.connect(self.finish_output)
-        self.worker_thread.image_signal.connect(self.image_output)
+        self.worker_thread.update_signal.connect(self.updateOutput)
+        self.worker_thread.finish_signal.connect(self.finishOutput)
+        self.worker_thread.image_signal.connect(self.imageOutput)
 
-        self.setLayout(lytTabProcessImage)
+        self.setLayout(self.lyt_process_image_tab)
 
-    def start_linkern(self):
+    def startLinkern(self):
         if os.path.exists(tsp_path):
             self.worker_thread.function_type = FunctionTypeEnum.LINKERN
             self.worker_thread.start()
 
-    def start_wave(self):
-        if self.imageCanvas.inputImage is None:
+    def startWave(self):
+        if self.image_canvas.input_image is None:
             return
-        image = Image.fromqpixmap(self.imageCanvas.inputImage).convert("L")
+        image = Image.fromqpixmap(self.image_canvas.input_image).convert("L")
         image = ImageOps.invert(image)
 
         self.worker_thread.function_type = FunctionTypeEnum.WAVE
-        self.worker_thread.wave_smooth = self.cbxWaveSmooth.isChecked()
+        self.worker_thread.wave_smooth = self.cbx_wave_smooth.isChecked()
         self.worker_thread.image = image
         self.worker_thread.start()
 
-    def start_dither(self):
-        if self.imageCanvas.inputImage is None:
+    def startDither(self):
+        if self.image_canvas.input_image is None:
             return
-        image = Image.fromqpixmap(self.imageCanvas.inputImage).convert("L")
+        image = Image.fromqpixmap(self.image_canvas.input_image).convert("L")
         image = ImageOps.invert(image)
 
         self.worker_thread.function_type = FunctionTypeEnum.DITHER
         self.worker_thread.image = image
         self.worker_thread.start()
 
-    def update_output(self, output):
+    def updateOutput(self, output):
         self.output_text_edit.append(output)
 
-    def finish_output(self):
+    def finishOutput(self):
         if self.worker_thread.function_type == FunctionTypeEnum.LINKERN:
             result = self.worker_thread.getResult()
-            self.imageCanvas.makePath(result)
+            self.image_canvas.makePath(result)
             return
         result = self.worker_thread.getResult()
         self.output_text_edit.append(result)
 
-    def image_output(self):
+    def imageOutput(self):
         image = self.worker_thread.image
         image = image.convert("RGBA")
         data = image.tobytes("raw", "RGBA")
 
-        self.imageCanvas.inputImage = QImage(
+        self.image_canvas.input_image = QImage(
             data, image.size[0], image.size[1], QImage.Format_RGBA8888
         )
-        self.imageCanvas.update()
+        self.image_canvas.update()
 
     def scaleImage(self) -> None:
-        if self.imageCanvas.inputImage is None:
+        if self.image_canvas.input_image is None:
             return
 
-        self.imageCanvas.imageScale = float(self.txtScale.text())
-        self.imageCanvas.scale()
+        self.image_canvas.image_scale = float(self.txt_scale.text())
+        self.image_canvas.scale()
 
     def clearAll(self) -> None:
-        self.imageCanvas.inputImage = None
-        self.imageCanvas.update()
+        self.image_canvas.input_image = None
+        self.image_canvas.update()
         self.output_text_edit.clear()
 
     def openImage(self) -> None:
         # Opens the windows for opening the image
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
-        fileFilter = "Images (*.png *.jpg *.jpeg *.bmp *.svg)"
-        self.inputImage, _ = QFileDialog.getOpenFileName(
-            self, "Open Image File", "", fileFilter, options=options
+        file_filter = "Images (*.png *.jpg *.jpeg *.bmp *.svg)"
+        self.input_image, _ = QFileDialog.getOpenFileName(
+            self, "Open Image File", "", file_filter, options=options
         )
 
-        if ".svg" in self.inputImage:
+        if ".svg" in self.input_image:
             # Program cannot work with normal SVG files,
             # but if it's the path of the image
             # (such as output of the "DrawingBot" program)
             # then it can be turned into GCODE,
             # and then turned into normal coordinate image
-            self.SVGToGCODE(self.inputImage)
+            self.SVGToGCODE(self.input_image)
             return
 
-        self.imageCanvas.loadImage(self.inputImage)
+        self.image_canvas.loadImage(self.input_image)
 
     def SVGToGCODE(self, path) -> None:
         # Turns SVG path to GCODE
@@ -711,10 +711,10 @@ class ProcessImage(QWidget):
             image = image.convert("RGBA")
             data = image.tobytes("raw", "RGBA")
 
-            self.imageCanvas.inputImage = QImage(
+            self.image_canvas.input_image = QImage(
                 data, image.size[0], image.size[1], QImage.Format_RGBA8888
             )
-            self.imageCanvas.update()
+            self.image_canvas.update()
 
     def gcodePlotter(self) -> Image:
         f = open(output_coordinates_path, "r")
@@ -782,45 +782,45 @@ class ConfigureMachine(QWidget):
         self.setupUi()
 
     def setupUi(self) -> None:
-        leftInputs = QWidget()
-        leftInputs.setStyleSheet("background-color: #EEE;")
+        self.left_input_panel = QWidget()
+        self.left_input_panel.setStyleSheet("background-color: #EEE;")
 
-        self.rightCanvas = ConfigurationCanvas()
+        self.right_canvas = ConfigurationCanvas()
 
         self.settings = DEFAULT_SETTINGS.copy()
         global settings
         settings = self.settings
 
         # Creating the lables and inputs
-        self.lblBeltToothDistance = QLabel("Belt tooth distance")
-        self.txtBeltToothDistance = QLineEdit()
+        self.lbl_belt_tooth_distance = QLabel("Belt tooth distance")
+        self.txt_belt_tooth_distance = QLineEdit()
 
-        self.lblToothOnGear = QLabel("Tooth on gear")
-        self.txtToothOnGear = QLineEdit()
+        self.lbl_tooth_on_gear = QLabel("Tooth on gear")
+        self.txt_tooth_on_gear = QLineEdit()
 
-        self.lblStepsPerRev = QLabel("Steps per rev")
-        self.txtStepsPerRev = QLineEdit()
+        self.lbl_steps_per_rev = QLabel("Steps per rev")
+        self.txt_steps_per_rev = QLineEdit()
 
-        self.lblMotorDir = QLabel("Motor direction")
-        self.txtMotorDir1 = QLineEdit()
-        self.txtMotorDir2 = QLineEdit()
+        self.lbl_motor_dir = QLabel("Motor direction")
+        self.txt_motor_dir_1 = QLineEdit()
+        self.txt_motor_dir_2 = QLineEdit()
 
-        self.lblMotorDist = QLabel("Motor distance")
-        self.txtMotorDist = QLineEdit()
+        self.lbl_motor_dist = QLabel("Motor distance")
+        self.txt_motor_dist = QLineEdit()
 
-        self.lblStartDist = QLabel("Start distance")
-        self.txtStartDist1 = QLineEdit()
-        self.txtStartDist2 = QLineEdit()
+        self.lbl_start_dist = QLabel("Start distance")
+        self.txt_start_dist_1 = QLineEdit()
+        self.txt_start_dist_2 = QLineEdit()
 
-        self.lblPaperDimenions = QLabel("Paper dimensions")
-        self.txtPaperDimenions1 = QLineEdit()
-        self.txtPaperDimenions2 = QLineEdit()
+        self.lbl_paper_dimenions = QLabel("Paper dimensions")
+        self.txt_paper_dimenions_1 = QLineEdit()
+        self.txt_paper_dimenions_2 = QLineEdit()
 
-        self.lblPaperOffset = QLabel("Paper offset")
-        self.txtPaperOffset = QLineEdit()
+        self.lbl_paper_offset = QLabel("Paper offset")
+        self.txt_paper_offset = QLineEdit()
 
-        self.btnLoadDefaults = QPushButton("Load default settings")
-        self.btnSave = QPushButton("Save", self)
+        self.btn_load_defaults = QPushButton("Load default settings")
+        self.btn_save = QPushButton("Save", self)
 
         self.loadSettings()
         self.setValuesInput(self.settings)
@@ -830,77 +830,77 @@ class ConfigureMachine(QWidget):
         )
 
         # Adding the lables and inputs to the layout
-        lytInputs = QGridLayout()
-        lytInputs.addWidget(self.lblBeltToothDistance, 0, 0)
-        lytInputs.addWidget(self.txtBeltToothDistance, 0, 1)
-        lytInputs.addWidget(self.lblToothOnGear, 1, 0)
-        lytInputs.addWidget(self.txtToothOnGear, 1, 1)
-        lytInputs.addWidget(self.lblStepsPerRev, 2, 0)
-        lytInputs.addWidget(self.txtStepsPerRev, 2, 1)
-        lytInputs.addWidget(self.lblMotorDir, 3, 0)
-        lytInputs.addWidget(self.txtMotorDir1, 4, 0)
-        lytInputs.addWidget(self.txtMotorDir2, 4, 1)
-        lytInputs.addWidget(self.lblMotorDist, 5, 0)
-        lytInputs.addWidget(self.txtMotorDist, 5, 1)
-        lytInputs.addWidget(self.lblStartDist, 6, 0)
-        lytInputs.addWidget(self.txtStartDist1, 7, 0)
-        lytInputs.addWidget(self.txtStartDist2, 7, 1)
-        lytInputs.addWidget(self.lblPaperDimenions, 8, 0)
-        lytInputs.addWidget(self.txtPaperDimenions1, 9, 0)
-        lytInputs.addWidget(self.txtPaperDimenions2, 9, 1)
-        lytInputs.addWidget(self.lblPaperOffset, 10, 0)
-        lytInputs.addWidget(self.txtPaperOffset, 10, 1)
-        lytInputs.addWidget(self.btnLoadDefaults, 11, 0)
-        lytInputs.addWidget(self.btnSave, 11, 1)
+        self.lyt_inputs = QGridLayout()
+        self.lyt_inputs.addWidget(self.lbl_belt_tooth_distance, 0, 0)
+        self.lyt_inputs.addWidget(self.txt_belt_tooth_distance, 0, 1)
+        self.lyt_inputs.addWidget(self.lbl_tooth_on_gear, 1, 0)
+        self.lyt_inputs.addWidget(self.txt_tooth_on_gear, 1, 1)
+        self.lyt_inputs.addWidget(self.lbl_steps_per_rev, 2, 0)
+        self.lyt_inputs.addWidget(self.txt_steps_per_rev, 2, 1)
+        self.lyt_inputs.addWidget(self.lbl_motor_dir, 3, 0)
+        self.lyt_inputs.addWidget(self.txt_motor_dir_1, 4, 0)
+        self.lyt_inputs.addWidget(self.txt_motor_dir_2, 4, 1)
+        self.lyt_inputs.addWidget(self.lbl_motor_dist, 5, 0)
+        self.lyt_inputs.addWidget(self.txt_motor_dist, 5, 1)
+        self.lyt_inputs.addWidget(self.lbl_start_dist, 6, 0)
+        self.lyt_inputs.addWidget(self.txt_start_dist_1, 7, 0)
+        self.lyt_inputs.addWidget(self.txt_start_dist_2, 7, 1)
+        self.lyt_inputs.addWidget(self.lbl_paper_dimenions, 8, 0)
+        self.lyt_inputs.addWidget(self.txt_paper_dimenions_1, 9, 0)
+        self.lyt_inputs.addWidget(self.txt_paper_dimenions_2, 9, 1)
+        self.lyt_inputs.addWidget(self.lbl_paper_offset, 10, 0)
+        self.lyt_inputs.addWidget(self.txt_paper_offset, 10, 1)
+        self.lyt_inputs.addWidget(self.btn_load_defaults, 11, 0)
+        self.lyt_inputs.addWidget(self.btn_save, 11, 1)
 
-        lytInputs.addItem(self.vertical_spacer)
+        self.lyt_inputs.addItem(self.vertical_spacer)
 
-        leftInputs.setLayout(lytInputs)
+        self.left_input_panel.setLayout(self.lyt_inputs)
 
-        lytTabConfigureMachine = QHBoxLayout()
-        lytTabConfigureMachine.addWidget(leftInputs)
-        lytTabConfigureMachine.addWidget(self.rightCanvas)
-        lytTabConfigureMachine.setStretchFactor(leftInputs, 2)
-        lytTabConfigureMachine.setStretchFactor(self.rightCanvas, 7)
+        self.lyt_configure_machine_tab = QHBoxLayout()
+        self.lyt_configure_machine_tab.addWidget(self.left_input_panel)
+        self.lyt_configure_machine_tab.addWidget(self.right_canvas)
+        self.lyt_configure_machine_tab.setStretchFactor(self.left_input_panel, 2)
+        self.lyt_configure_machine_tab.setStretchFactor(self.right_canvas, 7)
 
-        self.setLayout(lytTabConfigureMachine)
+        self.setLayout(self.lyt_configure_machine_tab)
 
         # Connecting the inputs to their functions
-        self.txtPaperOffset.textChanged.connect(self.processSettings)
-        self.txtMotorDist.textChanged.connect(self.processSettings)
-        self.txtPaperDimenions1.textChanged.connect(self.processSettings)
-        self.txtPaperDimenions2.textChanged.connect(self.processSettings)
-        self.txtStartDist1.textChanged.connect(self.processSettings)
-        self.txtStartDist2.textChanged.connect(self.processSettings)
+        self.txt_paper_offset.textChanged.connect(self.processSettings)
+        self.txt_motor_dist.textChanged.connect(self.processSettings)
+        self.txt_paper_dimenions_1.textChanged.connect(self.processSettings)
+        self.txt_paper_dimenions_2.textChanged.connect(self.processSettings)
+        self.txt_start_dist_1.textChanged.connect(self.processSettings)
+        self.txt_start_dist_2.textChanged.connect(self.processSettings)
 
-        self.btnSave.clicked.connect(self.saveSettings)
-        self.btnLoadDefaults.clicked.connect(self.loadDefaultSettings)
+        self.btn_save.clicked.connect(self.saveSettings)
+        self.btn_load_defaults.clicked.connect(self.loadDefaultSettings)
 
         self.processSettings()
 
     def processSettings(self) -> None:
         # Sets the settings to the values of the input fields
         self.settings["beltToothDistance"] = int(
-            self.txtBeltToothDistance.text())
-        self.settings["toothOngear"] = int(self.txtToothOnGear.text())
-        self.settings["stepsPerRev"] = int(self.txtStepsPerRev.text())
+            self.txt_belt_tooth_distance.text())
+        self.settings["toothOngear"] = int(self.txt_tooth_on_gear.text())
+        self.settings["stepsPerRev"] = int(self.txt_steps_per_rev.text())
         self.settings["motorDir"] = [
-            int(self.txtMotorDir1.text()),
-            int(self.txtMotorDir2.text()),
+            int(self.txt_motor_dir_1.text()),
+            int(self.txt_motor_dir_2.text()),
         ]
-        self.settings["distanceBetweenMotors"] = int(self.txtMotorDist.text())
+        self.settings["distanceBetweenMotors"] = int(self.txt_motor_dist.text())
         self.settings["startDistance"] = [
-            int(self.txtStartDist1.text()),
-            int(self.txtStartDist2.text()),
+            int(self.txt_start_dist_1.text()),
+            int(self.txt_start_dist_2.text()),
         ]
         self.settings["paperSize"] = [
-            int(self.txtPaperDimenions1.text()),
-            int(self.txtPaperDimenions2.text()),
+            int(self.txt_paper_dimenions_1.text()),
+            int(self.txt_paper_dimenions_2.text()),
         ]
-        self.settings["paperOffset"] = int(self.txtPaperOffset.text())
+        self.settings["paperOffset"] = int(self.txt_paper_offset.text())
 
-        self.rightCanvas.setSettings(self.settings)
-        self.rightCanvas.update()
+        self.right_canvas.setSettings(self.settings)
+        self.right_canvas.update()
         global settings
         settings = self.settings
 
@@ -909,24 +909,24 @@ class ConfigureMachine(QWidget):
         if vals is None:
             return
 
-        self.txtBeltToothDistance.setText(str(vals["beltToothDistance"]))
-        self.txtToothOnGear.setText(str(vals["toothOngear"]))
-        self.txtStepsPerRev.setText(str(vals["stepsPerRev"]))
-        self.txtMotorDir1.setText(str(vals["motorDir"][0]))
-        self.txtMotorDir2.setText(str(vals["motorDir"][1]))
-        self.txtMotorDist.setText(str(vals["distanceBetweenMotors"]))
-        self.txtStartDist1.setText(str(vals["startDistance"][0]))
-        self.txtStartDist2.setText(str(vals["startDistance"][1]))
-        self.txtPaperDimenions1.setText(str(vals["paperSize"][0]))
-        self.txtPaperDimenions2.setText(str(vals["paperSize"][1]))
-        self.txtPaperOffset.setText(str(vals["paperOffset"]))
+        self.txt_belt_tooth_distance.setText(str(vals["beltToothDistance"]))
+        self.txt_tooth_on_gear.setText(str(vals["toothOngear"]))
+        self.txt_steps_per_rev.setText(str(vals["stepsPerRev"]))
+        self.txt_motor_dir_1.setText(str(vals["motorDir"][0]))
+        self.txt_motor_dir_2.setText(str(vals["motorDir"][1]))
+        self.txt_motor_dist.setText(str(vals["distanceBetweenMotors"]))
+        self.txt_start_dist_1.setText(str(vals["startDistance"][0]))
+        self.txt_start_dist_2.setText(str(vals["startDistance"][1]))
+        self.txt_paper_dimenions_1.setText(str(vals["paperSize"][0]))
+        self.txt_paper_dimenions_2.setText(str(vals["paperSize"][1]))
+        self.txt_paper_offset.setText(str(vals["paperOffset"]))
 
     def loadDefaultSettings(self) -> None:
 
         self.setValuesInput(DEFAULT_SETTINGS.copy())
         self.processSettings()
-        self.rightCanvas.setSettings(self.settings)
-        self.rightCanvas.update()
+        self.right_canvas.setSettings(self.settings)
+        self.right_canvas.update()
         global settings
         settings = self.settings
 
@@ -952,11 +952,11 @@ class MyWindow(QMainWindow):
         super().__init__()
         tab_widget = QTabWidget(self)
 
-        self.tabConfigureMachine = ConfigureMachine()
-        self.tabProcessImage = ProcessImage()
+        self.tab_configure_machine = ConfigureMachine()
+        self.tab_process_image = ProcessImage()
 
-        tab_widget.addTab(self.tabProcessImage, "Process Image")
-        tab_widget.addTab(self.tabConfigureMachine, "Configure Machine")
+        tab_widget.addTab(self.tab_process_image, "Process Image")
+        tab_widget.addTab(self.tab_configure_machine, "Configure Machine")
 
         self.setCentralWidget(tab_widget)
 

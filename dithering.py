@@ -3,7 +3,7 @@ from PIL import Image, ImageOps
 from rembg import remove
 
 
-def apply_jarvis_judice_ninke_dithering(image, tsp_path):
+def applyDithering(image, tsp_path):
     grayscale_image = image.convert("L")
     grayscale_image = ImageOps.invert(grayscale_image)
 
@@ -69,5 +69,5 @@ def apply_jarvis_judice_ninke_dithering(image, tsp_path):
 # jpg_image.paste(input_image, (0, 0), input_image)
 # input_image = jpg_image
 # input_image = input_image.resize((int(input_image.width/downscale), int(input_image.height/downscale)))
-# output_image = apply_jarvis_judice_ninke_dithering(input_image)
+# output_image = applyDithering(input_image)
 # output_image.save('output_image.png')

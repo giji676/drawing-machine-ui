@@ -381,6 +381,8 @@ class ProcessCanvas(QWidget):
         self.last_pos = QPoint()
         self.delta = QPoint()
 
+        self.processImage = None
+
         self.imageScale = 1
 
         self.inputImage = None
@@ -451,7 +453,7 @@ class ProcessCanvas(QWidget):
         if not os.path.exists(output_coordinates_path):
             return
         toSteps.convertToSteps(
-            settings, output_coordinates_path, output_steps_path, fit=True
+            settings, output_coordinates_path, output_steps_path, fit=True, min_pen_pickup=self.processImage.cbxMinPenPickup.isChecked()
         )
 
     def removeBg(self) -> None:
@@ -538,6 +540,7 @@ class ProcessImage(QWidget):
         leftInputs = QWidget()
         leftInputs.setStyleSheet("background-color: #EEE;")
         self.imageCanvas = ProcessCanvas()
+        self.imageCanvas.processImage = self
 
         # Creating the lables and inputs
         self.btnOpenImage = QPushButton("Open Image")
@@ -554,6 +557,7 @@ class ProcessImage(QWidget):
         self.btnConvertToSteps = QPushButton("Convert to steps")
         self.btnSaveImage = QPushButton("Save Image")
         self.cbxWaveSmooth = QCheckBox("Use Wave Smoother")
+        self.cbxMinPenPickup = QCheckBox("Use Minimum Pen Pickup Distance")
 
         self.lblOutput = QLabel("Output")
         self.output_text_edit = QTextEdit()
@@ -596,6 +600,7 @@ class ProcessImage(QWidget):
         lytInputs.addWidget(self.btnConvertToSteps, 5, 1)
         lytInputs.addWidget(self.btnSaveImage, 6, 0)
         lytInputs.addWidget(self.cbxWaveSmooth, 6, 1)
+        lytInputs.addWidget(self.cbxMinPenPickup, 7, 0)
 
         lytInputs.addWidget(self.lblOutput, 9, 0)
         lytInputs.addWidget(self.output_text_edit, 10, 0, 1, 2)

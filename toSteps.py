@@ -1,7 +1,7 @@
 import math
 
 
-def convertToSteps(settings, input_file, output_file, fit=False):
+def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=False):
     global s_current_distance
     # mm | Distance between each tooth on the belt
     mm_belt_tooth_distance = int(settings["beltToothDistance"])
@@ -190,55 +190,68 @@ def convertToSteps(settings, input_file, output_file, fit=False):
 
     raw_penup_counter = 0
     processed_penup_counter = 0
+    print("min pen pickup: ", min_pen_pickup)
 
-    for line in imgs:
-        if line == "PENUP" and first:
-            raw_penup_counter += 1
-            if line == last_line:
+    if min_pen_pickup:
+        for line in imgs:
+            if line == "PENUP" and first:
+                raw_penup_counter += 1
+                if line == last_line:
+                    continue
+                # f.write(f"{line}:45\n")
+                pen_down = False
+                last_line = line
                 continue
-            # f.write(f"{line}:45\n")
-            pen_down = False
-            last_line = line
-            continue
-        if line == "PENDOWN":
-            if pen_down:
+            if line == "PENDOWN":
+                if pen_down:
+                    continue
+                f.write(f"{line}:0\n")
+                pen_down = True
+                last_line = line
                 continue
-            f.write(f"{line}:0\n")
-            pen_down = True
-            last_line = line
-            continue
-        if first:
+            if first:
+                s_motor_current_offset = writePos(line, f, s_motor_current_offset)
+                last_pos = line
+                first = False
+                last_line = line
+                continue
+            if line == "PENUP":
+                raw_penup_counter += 1
+                if line == last_line:
+                    continue
+                hit_penup = True
+                continue
+            if hit_penup:
+                hit_penup = False
+                dist = math.sqrt((line[0] - last_pos[0])**2 + (line[1] - last_pos[1])**2)
+                if dist < min_dist_for_servo:
+                    f.write("PENUP:45\n")
+                    processed_penup_counter += 1
+                    s_motor_current_offset = writePos(line, f, s_motor_current_offset)
+                    last_pos = line
+                    last_line = line
+                    pen_down = False
+                    continue
+                else:
+                    s_motor_current_offset = writePos(line, f, s_motor_current_offset)
+                    last_pos = line
+                    last_line = line
+                    continue
             s_motor_current_offset = writePos(line, f, s_motor_current_offset)
             last_pos = line
-            first = False
             last_line = line
-            continue
-        if line == "PENUP":
-            raw_penup_counter += 1
-            if line == last_line:
+        print(f"Done\t Raw penups:{raw_penup_counter}\t Processed penups:{processed_penup_counter}")
+
+    else:
+        for line in imgs:
+            if line == "PENUP":
+                f.write(f"{line}:45\n")
                 continue
-            hit_penup = True
-            continue
-        if hit_penup:
-            hit_penup = False
-            dist = math.sqrt((line[0] - last_pos[0])**2 + (line[1] - last_pos[1])**2)
-            if dist < min_dist_for_servo:
-                f.write("PENUP:45\n")
-                processed_penup_counter += 1
-                s_motor_current_offset = writePos(line, f, s_motor_current_offset)
-                last_pos = line
-                last_line = line
-                pen_down = False
+            if line == "PENDOWN":
+                f.write(f"{line}:0\n")
                 continue
-            else:
-                s_motor_current_offset = writePos(line, f, s_motor_current_offset)
-                last_pos = line
-                last_line = line
-                continue
-        s_motor_current_offset = writePos(line, f, s_motor_current_offset)
-        last_pos = line
-        last_line = line
+            s_motor_current_offset = writePos(line, f, s_motor_current_offset)
+        print("Done")
 
     f.write("PENUP:45\n")
     f.close()
-    print(f"Done\t Raw penups:{raw_penup_counter}\t Processed penups:{processed_penup_counter}")

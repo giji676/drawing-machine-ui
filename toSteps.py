@@ -190,7 +190,8 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
 
     raw_penup_counter = 0
     processed_penup_counter = 0
-    print("min pen pickup: ", min_pen_pickup)
+
+    putput_txt = ""
 
     if min_pen_pickup:
         for line in imgs:
@@ -240,7 +241,7 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
             s_motor_current_offset = writePos(line, f, s_motor_current_offset)
             last_pos = line
             last_line = line
-        print(f"Done\t Raw penups:{raw_penup_counter}\t Processed penups:{processed_penup_counter}")
+        output_txt = f"Finished-\nRaw penups: {raw_penup_counter} Processed penups: {processed_penup_counter}"
 
     else:
         for line in imgs:
@@ -251,7 +252,8 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
                 f.write(f"{line}:0\n")
                 continue
             s_motor_current_offset = writePos(line, f, s_motor_current_offset)
-        print("Done")
+        output_txt = "Finished"
 
     f.write("PENUP:45\n")
     f.close()
+    return output_txt

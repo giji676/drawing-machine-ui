@@ -453,10 +453,10 @@ class ProcessCanvas(QWidget):
         if not os.path.exists(output_coordinates_path):
             return
         steps_output = toSteps.convertToSteps(
-            settings, output_coordinates_path, output_steps_path, fit=True, min_pen_pickup=self.process_image_window.cbxMinPenPickup.isChecked()
+            settings, output_coordinates_path, output_steps_path, fit=True, min_pen_pickup=self.process_image_window.cbx_min_pen_pickup.isChecked()
         )
         if steps_output:
-            self.process_image_window.update_output(steps_output)
+            self.process_image_window.updateOutput(steps_output)
 
     def removeBg(self) -> None:
         # Removes the background of the image, and replaces it with white background instead of transparent

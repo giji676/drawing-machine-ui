@@ -155,11 +155,11 @@ class WorkerThread(QThread):
                     pixels[y, n_x] / ((2**8)/scaled_colour_range))
                 # If the pixel value is under half of the <scaled_colour_range> only increase the amplitude
                 if pixels[y, n_x] < scaled_colour_range / 2:
-                    frequency = 0
+                    frequency = 1
                     amplitude = pixels[y, n_x]
                 # If the pixel value is over half of the <scaled_colour_range> use max amplitude and increase frequency
                 else:
-                    frequency = pixels[y, n_x] - scaled_colour_range / 2
+                    frequency = pixels[y, n_x] - scaled_colour_range / 2 + 1
                     amplitude = max_amplitude
 
                 # For each pixel of the processed image, <pixel_wave_size> x <pixel_wave_size> "super pixel" is created, that holds the wave for that pixel

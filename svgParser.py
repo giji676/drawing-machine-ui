@@ -17,6 +17,11 @@ def svg_to_coordinates(path):
         values = re.split(r"[ ,]+", values.strip())
         values = [float(v) for v in values if v.strip()]
 
+        """ =============== TODO ============= """
+        """
+        Currently the pen is always down and drawing,
+        need to add pen lift
+        """
         if command in ("M", "m"):
             # Move to command
             current_point = values[:2]

@@ -134,7 +134,7 @@ def get_max_width_height(coordinates):
     return int(max_x), int(max_y)
 
 
-def draw_image(ids_styles_coordinates, output_file, width=800, height=800):
+def draw_image(ids_styles_coordinates, width=800, height=800):
     image = Image.new("RGBA", (width, height), (255, 255, 255, 255))
     draw = ImageDraw.Draw(image)
 
@@ -151,11 +151,9 @@ def draw_image(ids_styles_coordinates, output_file, width=800, height=800):
             end_point = coordinates[i + 1]
             draw.line((start_point[0], start_point[1], end_point[0], end_point[1]), fill=fill_rgba, width=1)
         image.show()
-    image.show()
-    image.save(output_file)
+    return image
 
 
-svg_file = "example.svg"
-ids_styles_coordinates, max_x, max_y = extract_ids_styles(svg_file)
-output_file = "output_img.png"
-draw_image(ids_styles_coordinates, output_file, width=max_x, height=max_y)
+def parseSvg(path):
+    ids_styles_coordinates, max_x, max_y = extract_ids_styles(path)
+    return draw_image(ids_styles_coordinates, width=max_x, height=max_y)

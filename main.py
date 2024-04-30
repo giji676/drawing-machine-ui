@@ -19,6 +19,7 @@ import dithering
 import gcodeConvertor
 import pathMaker
 import toSteps
+import svgParser
 
 import waveSmoother
 import waveSmootherStandalone
@@ -698,10 +699,25 @@ class ProcessImage(QWidget):
             # (such as output of the "DrawingBot" program)
             # then it can be turned into GCODE,
             # and then turned into normal coordinate image
-            self.SVGToGCODE(self.input_image)
+
+            # self.SVGToGCODE(self.input_image)
+
+            """ New custom svg parser """
+            self.parseSvg(self.input_image)
             return
 
         self.image_canvas.loadImage(self.input_image)
+
+    def parseSvg(self, path) -> None:
+        image = svgParser.parseSvg(path)
+
+        image = image.convert("RGBA")
+        data = image.tobytes("raw", "RGBA")
+
+        self.image_canvas.input_image = QImage(
+            data, image.size[0], image.size[1], QImage.Format_RGBA8888
+        )
+        self.image_canvas.update()
 
     def SVGToGCODE(self, path) -> None:
         # Turns SVG path to GCODE

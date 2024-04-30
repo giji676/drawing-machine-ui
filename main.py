@@ -709,7 +709,7 @@ class ProcessImage(QWidget):
         self.image_canvas.loadImage(self.input_image)
 
     def parseSvg(self, path) -> None:
-        image = svgParser.parseSvg(path)
+        image = svgParser.parseSvg(path, self.updateOutput)
 
         image = image.convert("RGBA")
         data = image.tobytes("raw", "RGBA")

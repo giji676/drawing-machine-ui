@@ -65,15 +65,18 @@ def svg_to_coordinates(path):
     return coordinates
 
 
-def extract_ids_styles(svg_file):
+def extract_ids_styles(svg_file, callback):
     ids = []
     tree = ET.parse(svg_file)
     root = tree.getroot()
 
     max_x, max_y = 0, 0
 
+    g_ids = root.findall('.//{http://www.w3.org/2000/svg}g[@id]')
+
     # Finds all the <g> tags with "id"
-    for group_with_id in root.findall('.//{http://www.w3.org/2000/svg}g[@id]'):
+    for group_with_id in g_ids:
+        callback(f"Processing {g_ids.index(group_with_id)+1}/{len(g_ids)}")
         # Gets the "id" which should be the name of the colour pen used
         id_value = group_with_id.get('id')
         coordinates = []
@@ -154,6 +157,6 @@ def draw_image(ids_styles_coordinates, width=800, height=800):
     return image
 
 
-def parseSvg(path):
-    ids_styles_coordinates, max_x, max_y = extract_ids_styles(path)
+def parseSvg(path, callback):
+    ids_styles_coordinates, max_x, max_y = extract_ids_styles(path, callback)
     return draw_image(ids_styles_coordinates, width=max_x, height=max_y)

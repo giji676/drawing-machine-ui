@@ -18,11 +18,6 @@ def svgToCoordinates(path):
         values = re.split(r"[ ,]+", values.strip())
         values = [float(v) for v in values if v.strip()]
 
-        """ =============== TODO ============= """
-        """
-        Currently the pen is always down and drawing,
-        need to add pen lift
-        """
         if command in ("M", "m"):
             # Move to command
             current_point = values[:2]
@@ -50,12 +45,6 @@ def svgToCoordinates(path):
         elif command in ("C", "c"):
             # Cubic Bézier curve command
             coordinates.append(command)
-            """ =============== TODO ============= """
-            """
-            currently the raw coordinates of control points and end points are added to the coordinates list,
-            instead the curve should be approximated at regular intervals,
-            and their coordinates should be used
-            """
             for i in range(0, len(values), 6):
                 x1, y1, x2, y2, x, y = values[i: i + 6]
                 # Cubic Bézier curve has two control points (x1, y1) and (x2, y2), and an endpoint (x, y)
@@ -84,7 +73,8 @@ def extractIdsStyles(svg_file, callback):
         id_value = group_with_id.get('id')
         coordinates = []
         # Finds all the <g> tags with "style" that are children of previous <g> tag
-        g_styles = group_with_id.findall('.//{http://www.w3.org/2000/svg}g[@style]')
+        g_styles = group_with_id.findall(
+            './/{http://www.w3.org/2000/svg}g[@style]')
         if len(g_styles) == 0:
             g_styles = g_ids
 
@@ -99,7 +89,8 @@ def extractIdsStyles(svg_file, callback):
                 for part in style_parts:
                     if "fill:" in part:
                         fill = part.split(":")[1].strip()
-                        fill = tuple(int(x) for x in re.search(r'rgb\((.*?)\)', fill).group(1).split(','))
+                        fill = tuple(int(x) for x in re.search(
+                            r'rgb\((.*?)\)', fill).group(1).split(','))
                     elif "fill-opacity:" in part:
                         fill_opacity = float(part.split(":")[1].strip())
             else:
@@ -162,7 +153,7 @@ def drawImage(ids_styles_coordinates, width=800, height=800):
     draw = ImageDraw.Draw(image)
 
     command_string = "MmLlVvHhCc"
-    
+
     cubic_bezier_curve_res = 10
 
     # data will represent each pen group - pen id/name, colour desc, coordinates
@@ -191,8 +182,10 @@ def drawImage(ids_styles_coordinates, width=800, height=800):
                 if command in ("C", "c"):
                     start_point = prev_coords
                     for t in range(cubic_bezier_curve_res+1):
-                        end_point = cubicBezier(t/cubic_bezier_curve_res, start_point, coordinates[i+1], coordinates[i+2], coordinates[i+3])
-                        draw.line((start_point[0], start_point[1], end_point[0], end_point[1]), fill=fill_rgba, width=1)
+                        end_point = cubicBezier(
+                            t/cubic_bezier_curve_res, start_point, coordinates[i+1], coordinates[i+2], coordinates[i+3])
+                        draw.line(
+                            (start_point[0], start_point[1], end_point[0], end_point[1]), fill=fill_rgba, width=1)
                         start_point = end_point
                     prev_coords = end_point
                     offset_index = 3
@@ -200,19 +193,23 @@ def drawImage(ids_styles_coordinates, width=800, height=800):
                 if command in ("L", "l", "H", "h", "V", "v"):
                     start_point = prev_coords
                     end_point = coordinates[i + 1]
-                    draw.line((start_point[0], start_point[1], end_point[0], end_point[1]), fill=fill_rgba, width=1)
+                    draw.line(
+                        (start_point[0], start_point[1], end_point[0], end_point[1]), fill=fill_rgba, width=1)
                     offset_index = 1
         image.show()
     return image
+
 
 def cubicBezier(t, p0, p1, p2, p3):
     x = (1-t)**3*p0[0]+3*(1-t)**2*t*p1[0]+3*(1-t)*t**2*p2[0]+t**3*p3[0]
     y = (1-t)**3*p0[1]+3*(1-t)**2*t*p1[1]+3*(1-t)*t**2*p2[1]+t**3*p3[1]
     return (x, y)
 
+
 def parseSvg(path, callback=None):
     ids_styles_coordinates, max_x, max_y = extractIdsStyles(path, callback)
     return drawImage(ids_styles_coordinates, width=max_x, height=max_y)
+
 
 if __name__ == '__main__':
     globals()[sys.argv[1]](sys.argv[2])

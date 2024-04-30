@@ -162,6 +162,8 @@ def drawImage(ids_styles_coordinates, width=800, height=800):
     draw = ImageDraw.Draw(image)
 
     command_string = "MmLlVvHhCc"
+    
+    cubic_bezier_curve_res = 10
 
     # data will represent each pen group - pen id/name, colour desc, coordinates
     for data in ids_styles_coordinates:
@@ -174,35 +176,32 @@ def drawImage(ids_styles_coordinates, width=800, height=800):
         fill_rgba = fill + (int(255 * fill_opacity),)
 
         command = ""
-        command_coords = []
-        for i in range(len(coordinates)):
+        offset_index = 0
+        prev_coords = (0, 0)
+        for i in range(len(coordinates) - 1):
+            if offset_index > 0:
+                offset_index -= 1
+                continue
             if coordinates[i] in (list(command_string)):
-                if command in ("M", "m"):
-                    command = coordinates[i]
-                    command_coords = command_coords[-1:]
-                    continue
-                for j in range(len(command_coords) - 1):
-                    start_point = command_coords[j]
-                    end_point = command_coords[j + 1]
-                    draw.line((start_point[0], start_point[1], end_point[0], end_point[1]), fill=fill_rgba, width=1)
                 command = coordinates[i]
-                command_coords = command_coords[-1:]
-            else:
-                command_coords.append(coordinates[i])
-        
-        cubic_bezier_curve_res = 10
-
-        if command in ("C", "c"):
-            start_point = command_coords[0]
-            for t in range(cubic_bezier_curve_res+1):
-                end_point = cubicBezier(t/cubic_bezier_curve_res, command_coords[0], command_coords[1], command_coords[2], command_coords[3])
-                draw.line((start_point[0], start_point[1], end_point[0], end_point[1]), fill=(255,0,0,255), width=1)
-                start_point = end_point
-
-        for j in range(len(command_coords) - 1):
-            start_point = command_coords[j]
-            end_point = command_coords[j + 1]
-            draw.line((start_point[0], start_point[1], end_point[0], end_point[1]), fill=fill_rgba, width=1)
+                if command in ("M", "m"):
+                    prev_coords = coordinates[i+1]
+                    offset_index = 1
+                    continue
+                if command in ("C", "c"):
+                    start_point = prev_coords
+                    for t in range(cubic_bezier_curve_res+1):
+                        end_point = cubicBezier(t/cubic_bezier_curve_res, start_point, coordinates[i+1], coordinates[i+2], coordinates[i+3])
+                        draw.line((start_point[0], start_point[1], end_point[0], end_point[1]), fill=fill_rgba, width=1)
+                        start_point = end_point
+                    prev_coords = end_point
+                    offset_index = 3
+                    continue
+                if command in ("L", "l", "H", "h", "V", "v"):
+                    start_point = prev_coords
+                    end_point = coordinates[i + 1]
+                    draw.line((start_point[0], start_point[1], end_point[0], end_point[1]), fill=fill_rgba, width=1)
+                    offset_index = 1
         image.show()
     return image
 

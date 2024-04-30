@@ -106,7 +106,13 @@ def extract_ids_styles(svg_file, callback):
                 fill_opacity = 1.0
 
             # Finds all the <path> tags that are children of the previous <g> tag with "style"
-            paths = child_group.findall('.//{http://www.w3.org/2000/svg}path')
+            
+            if g_styles == g_ids:
+                path_parent = g_styles
+            else:
+                path_parent = child_group
+
+            paths = path_parent.findall('.//{http://www.w3.org/2000/svg}path')
             for path in paths:
                 d_value = path.get('d')
                 path_coordinates = svg_to_coordinates(d_value)

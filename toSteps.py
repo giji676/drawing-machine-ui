@@ -88,7 +88,9 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
 
     for line in f:
         line = line.strip()
-        if line == "PENUP":
+        if line == "PAUSE":
+            imgs.append("PAUSE")
+        elif line == "PENUP":
             imgs.append("PENUP")
         elif line == "PENDOWN":
             imgs.append("PENDOWN")
@@ -193,6 +195,9 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
 
     if min_pen_pickup:
         for line in imgs:
+            if line == "PAUSE":
+                f.write(f"{line}\n")
+                continue
             if line == "PENUP" and first:
                 raw_penup_counter += 1
                 if line == last_line:
@@ -243,6 +248,9 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
 
     else:
         for line in imgs:
+            if line == "PAUSE":
+                f.write(f"{line}\n")
+                continue
             if line == "PENUP":
                 f.write(f"{line}:45\n")
                 continue

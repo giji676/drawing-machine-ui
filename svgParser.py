@@ -154,7 +154,13 @@ def drawImage(ids_styles_coordinates, width=800, height=800):
 
     command_string = "MmLlVvHhCc"
 
-    cubic_bezier_curve_res = 10
+    cubic_bezier_curve_res = 5
+
+    GENERATED_FILES = "generated_files"
+    OUTPUT_COORDINATES_TXT = "output_coordinates.txt"
+    output_coordinates_path = f"{GENERATED_FILES}\{OUTPUT_COORDINATES_TXT}"
+
+    f = open(output_coordinates_path, "w")
 
     # data will represent each pen group - pen id/name, colour desc, coordinates
     for data in ids_styles_coordinates:
@@ -167,6 +173,7 @@ def drawImage(ids_styles_coordinates, width=800, height=800):
         fill_rgba = fill + (int(255 * fill_opacity),)
 
         command = ""
+        last_command = ""
         offset_index = 0
         prev_coords = (0, 0)
         for i in range(len(coordinates) - 1):
@@ -176,27 +183,42 @@ def drawImage(ids_styles_coordinates, width=800, height=800):
             if coordinates[i] in (list(command_string)):
                 command = coordinates[i]
                 if command in ("M", "m"):
+                    f.write("PENUP\n")
                     prev_coords = coordinates[i+1]
+                    last_command = command
                     offset_index = 1
                     continue
                 if command in ("C", "c"):
                     start_point = prev_coords
+                    if last_command in ("M", "m"):
+                        f.write(f"{str(start_point[0])} {str(start_point[1])}\n")
+                        f.write("PENDOWN\n")
                     for t in range(cubic_bezier_curve_res+1):
                         end_point = cubicBezier(
                             t/cubic_bezier_curve_res, start_point, coordinates[i+1], coordinates[i+2], coordinates[i+3])
                         draw.line(
                             (start_point[0], start_point[1], end_point[0], end_point[1]), fill=fill_rgba, width=1)
                         start_point = end_point
+                        f.write(f"{str(start_point[0])} {str(start_point[1])}\n")
                     prev_coords = end_point
+                    last_command = command
                     offset_index = 3
                     continue
                 if command in ("L", "l", "H", "h", "V", "v"):
                     start_point = prev_coords
+                    if last_command in ("M", "m"):
+                        f.write(f"{str(start_point[0])} {str(start_point[1])}\n")
+                        f.write("PENDOWN\n")
                     end_point = coordinates[i + 1]
                     draw.line(
                         (start_point[0], start_point[1], end_point[0], end_point[1]), fill=fill_rgba, width=1)
+                    f.write(f"{str(end_point[0])} {str(end_point[1])}\n")
+                    last_command = command
                     offset_index = 1
+        f.write("PENUP\n")
+        f.write("PAUSE\n")
         image.show()
+    f.close()
     return image
 
 

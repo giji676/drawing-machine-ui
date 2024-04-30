@@ -710,6 +710,8 @@ class ProcessImage(QWidget):
 
     def parseSvg(self, path) -> None:
         image = svgParser.parseSvg(path, self.updateOutput)
+        if image == None:
+            return
 
         image = image.convert("RGBA")
         data = image.tobytes("raw", "RGBA")

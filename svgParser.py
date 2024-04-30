@@ -73,15 +73,21 @@ def extract_ids_styles(svg_file, callback):
     max_x, max_y = 0, 0
 
     g_ids = root.findall('.//{http://www.w3.org/2000/svg}g[@id]')
+    if len(g_ids) == 0:
+        g_ids = root
 
     # Finds all the <g> tags with "id"
     for group_with_id in g_ids:
-        callback(f"Processing {g_ids.index(group_with_id)+1}/{len(g_ids)}")
+        # callback(f"Processing {g_ids.index(group_with_id)+1}/{len(g_ids)}")
         # Gets the "id" which should be the name of the colour pen used
         id_value = group_with_id.get('id')
         coordinates = []
         # Finds all the <g> tags with "style" that are children of previous <g> tag
-        for child_group in group_with_id.findall('.//{http://www.w3.org/2000/svg}g[@style]'):
+        g_styles = group_with_id.findall('.//{http://www.w3.org/2000/svg}g[@style]')
+        if len(g_styles) == 0:
+            g_styles = g_ids
+
+        for child_group in g_styles:
             # Gets the "style" which should contain information about the pen used
             # E.g fill, fill opacity
             style_value = child_group.get('style')
@@ -95,9 +101,13 @@ def extract_ids_styles(svg_file, callback):
                         fill = tuple(int(x) for x in re.search(r'rgb\((.*?)\)', fill).group(1).split(','))
                     elif "fill-opacity:" in part:
                         fill_opacity = float(part.split(":")[1].strip())
+            else:
+                fill = (0, 0, 0)
+                fill_opacity = 1.0
 
             # Finds all the <path> tags that are children of the previous <g> tag with "style"
-            for path in child_group.findall('.//{http://www.w3.org/2000/svg}path'):
+            paths = child_group.findall('.//{http://www.w3.org/2000/svg}path')
+            for path in paths:
                 d_value = path.get('d')
                 path_coordinates = svg_to_coordinates(d_value)
                 coordinates.extend(path_coordinates)
@@ -122,6 +132,8 @@ def extract_ids_styles(svg_file, callback):
 
 
 def get_max_width_height(coordinates):
+    if coordinates == []:
+        return 0, 0
     max_x = float('-inf')
     max_y = float('-inf')
 
@@ -138,7 +150,9 @@ def get_max_width_height(coordinates):
 
 
 def draw_image(ids_styles_coordinates, width=800, height=800):
-    image = Image.new("RGBA", (width, height), (255, 255, 255, 255))
+    if width <= 0 or height <= 0:
+        return
+    image = Image.new("RGBA", (width+1, height+1), (255, 255, 255, 255))
     draw = ImageDraw.Draw(image)
 
     command_string = "MmLlVvHhCc"
@@ -148,12 +162,14 @@ def draw_image(ids_styles_coordinates, width=800, height=800):
         fill = data["fill"]
         fill_opacity = data["fill_opacity"]
         coordinates = data["coordinates"]
+        if coordinates == []:
+            return image
 
         fill_rgba = fill + (int(255 * fill_opacity),)
 
         command = ""
         command_coords = []
-        for i in range(len(coordinates) - 1):
+        for i in range(len(coordinates)):
             if coordinates[i] in (list(command_string)):
                 if command in ("M", "m"):
                     command = coordinates[i]
@@ -167,6 +183,11 @@ def draw_image(ids_styles_coordinates, width=800, height=800):
                 command_coords = command_coords[-1:]
             else:
                 command_coords.append(coordinates[i])
+
+        for j in range(len(command_coords) - 1):
+            start_point = command_coords[j]
+            end_point = command_coords[j + 1]
+            draw.line((start_point[0], start_point[1], end_point[0], end_point[1]), fill=fill_rgba, width=1)
         image.show()
     return image
 

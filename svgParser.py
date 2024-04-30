@@ -25,25 +25,30 @@ def svg_to_coordinates(path):
         if command in ("M", "m"):
             # Move to command
             current_point = values[:2]
+            #coordinates.append(command)
             coordinates.append(current_point)
         elif command in ("L", "l"):
             # Line to command
+            #coordinates.append(command)
             for i in range(0, len(values), 2):
                 x, y = values[i: i + 2]
                 current_point = [x, y]
                 coordinates.append(current_point)
         elif command in ("H", "h"):
             # Horizontal line to command
+            #coordinates.append(command)
             for x in values:
                 current_point[0] = x
                 coordinates.append(current_point.copy())
         elif command in ("V", "v"):
             # Vertical line to command
+            #coordinates.append(command)
             for y in values:
                 current_point[1] = y
                 coordinates.append(current_point.copy())
         elif command in ("C", "c"):
             # Cubic Bézier curve command
+            #coordinates.append(command)
             """ =============== TODO ============= """
             """
             currently the raw coordinates of control points and end points are added to the coordinates list,
@@ -114,13 +119,19 @@ def extract_ids_styles(svg_file):
 
 
 def get_max_width_height(coordinates):
-    max_x = max(coord[0] for coord in coordinates)
-    max_y = max(coord[1] for coord in coordinates)
+    max_x = float('-inf')
+    max_y = float('-inf')
 
-    width = max_x
-    height = max_y
+    for coord in coordinates:
+        try:
+            x, y = coord
+            if isinstance(x, (int, float)) and isinstance(y, (int, float)):
+                max_x = max(max_x, x)
+                max_y = max(max_y, y)
+        except (TypeError, ValueError):
+            pass
 
-    return int(width), int(height)
+    return int(max_x), int(max_y)
 
 
 def draw_image(ids_styles_coordinates, output_file, width=800, height=800):

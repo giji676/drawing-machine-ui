@@ -25,30 +25,30 @@ def svg_to_coordinates(path):
         if command in ("M", "m"):
             # Move to command
             current_point = values[:2]
-            #coordinates.append(command)
+            coordinates.append(command)
             coordinates.append(current_point)
         elif command in ("L", "l"):
             # Line to command
-            #coordinates.append(command)
+            coordinates.append(command)
             for i in range(0, len(values), 2):
                 x, y = values[i: i + 2]
                 current_point = [x, y]
                 coordinates.append(current_point)
         elif command in ("H", "h"):
             # Horizontal line to command
-            #coordinates.append(command)
+            coordinates.append(command)
             for x in values:
                 current_point[0] = x
                 coordinates.append(current_point.copy())
         elif command in ("V", "v"):
             # Vertical line to command
-            #coordinates.append(command)
+            coordinates.append(command)
             for y in values:
                 current_point[1] = y
                 coordinates.append(current_point.copy())
         elif command in ("C", "c"):
             # Cubic Bézier curve command
-            #coordinates.append(command)
+            coordinates.append(command)
             """ =============== TODO ============= """
             """
             currently the raw coordinates of control points and end points are added to the coordinates list,
@@ -141,6 +141,8 @@ def draw_image(ids_styles_coordinates, width=800, height=800):
     image = Image.new("RGBA", (width, height), (255, 255, 255, 255))
     draw = ImageDraw.Draw(image)
 
+    command_string = "MmLlVvHhCc"
+
     # data will represent each pen group - pen id/name, colour desc, coordinates
     for data in ids_styles_coordinates:
         fill = data["fill"]
@@ -149,10 +151,22 @@ def draw_image(ids_styles_coordinates, width=800, height=800):
 
         fill_rgba = fill + (int(255 * fill_opacity),)
 
+        command = ""
+        command_coords = []
         for i in range(len(coordinates) - 1):
-            start_point = coordinates[i]
-            end_point = coordinates[i + 1]
-            draw.line((start_point[0], start_point[1], end_point[0], end_point[1]), fill=fill_rgba, width=1)
+            if coordinates[i] in (list(command_string)):
+                if command in ("M", "m"):
+                    command = coordinates[i]
+                    command_coords = command_coords[-1:]
+                    continue
+                for j in range(len(command_coords) - 1):
+                    start_point = command_coords[j]
+                    end_point = command_coords[j + 1]
+                    draw.line((start_point[0], start_point[1], end_point[0], end_point[1]), fill=fill_rgba, width=1)
+                command = coordinates[i]
+                command_coords = command_coords[-1:]
+            else:
+                command_coords.append(coordinates[i])
         image.show()
     return image
 

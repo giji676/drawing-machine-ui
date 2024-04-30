@@ -1,10 +1,11 @@
 import xml.etree.ElementTree as ET
 import re
+import sys
 
 from PIL import Image, ImageDraw
 
 
-def svg_to_coordinates(path):
+def svgToCoordinates(path):
     # Split path data into individual commands
     commands = re.findall(
         r"([MmLlHhVvCcSsQqTtAaZz])\s*([^MmLlHhVvCcSsQqTtAaZz]*)", path
@@ -65,7 +66,7 @@ def svg_to_coordinates(path):
     return coordinates
 
 
-def extract_ids_styles(svg_file, callback):
+def extractIdsStyles(svg_file, callback):
     ids = []
     tree = ET.parse(svg_file)
     root = tree.getroot()
@@ -106,7 +107,6 @@ def extract_ids_styles(svg_file, callback):
                 fill_opacity = 1.0
 
             # Finds all the <path> tags that are children of the previous <g> tag with "style"
-            
             if g_styles == g_ids:
                 path_parent = g_styles
             else:
@@ -115,10 +115,10 @@ def extract_ids_styles(svg_file, callback):
             paths = path_parent.findall('.//{http://www.w3.org/2000/svg}path')
             for path in paths:
                 d_value = path.get('d')
-                path_coordinates = svg_to_coordinates(d_value)
+                path_coordinates = svgToCoordinates(d_value)
                 coordinates.extend(path_coordinates)
 
-        local_max_x, local_max_y = get_max_width_height(coordinates)
+        local_max_x, local_max_y = getMaxWidthHeight(coordinates)
 
         if local_max_x > max_x:
             max_x = local_max_x
@@ -137,7 +137,7 @@ def extract_ids_styles(svg_file, callback):
     return ids, max_x, max_y
 
 
-def get_max_width_height(coordinates):
+def getMaxWidthHeight(coordinates):
     if coordinates == []:
         return 0, 0
     max_x = float('-inf')
@@ -155,7 +155,7 @@ def get_max_width_height(coordinates):
     return int(max_x), int(max_y)
 
 
-def draw_image(ids_styles_coordinates, width=800, height=800):
+def drawImage(ids_styles_coordinates, width=800, height=800):
     if width <= 0 or height <= 0:
         return
     image = Image.new("RGBA", (width+1, height+1), (255, 255, 255, 255))
@@ -189,6 +189,15 @@ def draw_image(ids_styles_coordinates, width=800, height=800):
                 command_coords = command_coords[-1:]
             else:
                 command_coords.append(coordinates[i])
+        
+        cubic_bezier_curve_res = 10
+
+        if command in ("C", "c"):
+            start_point = command_coords[0]
+            for t in range(cubic_bezier_curve_res+1):
+                end_point = cubicBezier(t/cubic_bezier_curve_res, command_coords[0], command_coords[1], command_coords[2], command_coords[3])
+                draw.line((start_point[0], start_point[1], end_point[0], end_point[1]), fill=(255,0,0,255), width=1)
+                start_point = end_point
 
         for j in range(len(command_coords) - 1):
             start_point = command_coords[j]
@@ -197,7 +206,14 @@ def draw_image(ids_styles_coordinates, width=800, height=800):
         image.show()
     return image
 
+def cubicBezier(t, p0, p1, p2, p3):
+    x = (1-t)**3*p0[0]+3*(1-t)**2*t*p1[0]+3*(1-t)*t**2*p2[0]+t**3*p3[0]
+    y = (1-t)**3*p0[1]+3*(1-t)**2*t*p1[1]+3*(1-t)*t**2*p2[1]+t**3*p3[1]
+    return (x, y)
 
-def parseSvg(path, callback):
-    ids_styles_coordinates, max_x, max_y = extract_ids_styles(path, callback)
-    return draw_image(ids_styles_coordinates, width=max_x, height=max_y)
+def parseSvg(path, callback=None):
+    ids_styles_coordinates, max_x, max_y = extractIdsStyles(path, callback)
+    return drawImage(ids_styles_coordinates, width=max_x, height=max_y)
+
+if __name__ == '__main__':
+    globals()[sys.argv[1]](sys.argv[2])

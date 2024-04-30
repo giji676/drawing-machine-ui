@@ -1,5 +1,6 @@
 /settings.json
 generated_files/
+.\vscode
 __pycache__/
 .venv/
 *.jpg

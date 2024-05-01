@@ -1,5 +1,9 @@
 import math
 
+""" ========== TODO ========= """
+"""
+detail of the curve image is being lost when converting to steps, floating values getting compressed into ints
+"""
 
 def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=False):
     global s_current_distance
@@ -123,7 +127,6 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
         s_current_distance = [round(s_new_distance[0]), round(s_new_distance[1])]
         return s_change
 
-
     image_offset = [0, 0]
     new_max = [s_paper_dimensions[0], s_paper_dimensions[1]]
 
@@ -143,7 +146,7 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
             new_max = [max_x * (s_paper_dimensions[1] / max_y), s_paper_dimensions[1]]
             image_offset = [(s_paper_dimensions[0] / 2) - (new_max[0] / 2), 0]
 
-    def writePos(pos, f, s_motor_current_offset):
+    def writePos(pos, f, s_motor_current_offset, last_written_pos):
         pos = [
             remap(
                 pos[0],
@@ -176,9 +179,11 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
             + str(s_motor_current_offset[1] * motor_dir[1])
             + "\n"
         )
+        if uno_input == last_written_pos:
+            return s_motor_current_offset, last_written_pos
 
         f.write(uno_input)
-        return s_motor_current_offset
+        return s_motor_current_offset, uno_input
 
     s_motor_current_offset = [0, 0]
     f = open(output_file, "w")
@@ -192,6 +197,7 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
 
     raw_penup_counter = 0
     processed_penup_counter = 0
+    last_written_pos = ""
 
     if min_pen_pickup:
         for line in imgs:
@@ -214,7 +220,7 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
                 last_line = line
                 continue
             if first:
-                s_motor_current_offset = writePos(line, f, s_motor_current_offset)
+                s_motor_current_offset, last_written_pos = writePos(line, f, s_motor_current_offset, last_written_pos)
                 last_pos = line
                 first = False
                 last_line = line
@@ -231,13 +237,13 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
                 if dist < min_dist_for_servo:
                     f.write("PENUP:45\n")
                     processed_penup_counter += 1
-                    s_motor_current_offset = writePos(line, f, s_motor_current_offset)
+                    s_motor_current_offset, last_written_pos = writePos(line, f, s_motor_current_offset, last_written_pos)
                     last_pos = line
                     last_line = line
                     pen_down = False
                     continue
                 else:
-                    s_motor_current_offset = writePos(line, f, s_motor_current_offset)
+                    s_motor_current_offset, last_written_pos = writePos(line, f, s_motor_current_offset, last_written_pos)
                     last_pos = line
                     last_line = line
                     continue
@@ -257,7 +263,7 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
             if line == "PENDOWN":
                 f.write(f"{line}:0\n")
                 continue
-            s_motor_current_offset = writePos(line, f, s_motor_current_offset)
+            s_motor_current_offset, last_written_pos = writePos(line, f, s_motor_current_offset, last_written_pos)
         output_txt = "Finished"
 
     f.write("PENUP:45\n")

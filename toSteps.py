@@ -199,6 +199,7 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
     processed_penup_counter = 0
     last_written_pos = ""
 
+    f.write("PENUP:45\n")
     if min_pen_pickup:
         for line in imgs:
             if line == "PAUSE":
@@ -234,7 +235,7 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
             if hit_penup:
                 hit_penup = False
                 dist = math.sqrt((line[0] - last_pos[0])**2 + (line[1] - last_pos[1])**2)
-                if dist < min_dist_for_servo:
+                if dist > min_dist_for_servo:
                     f.write("PENUP:45\n")
                     processed_penup_counter += 1
                     s_motor_current_offset, last_written_pos = writePos(line, f, s_motor_current_offset, last_written_pos)
@@ -247,7 +248,7 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
                     last_pos = line
                     last_line = line
                     continue
-            s_motor_current_offset = writePos(line, f, s_motor_current_offset)
+            s_motor_current_offset, last_written_pos = writePos(line, f, s_motor_current_offset, last_written_pos)
             last_pos = line
             last_line = line
         output_txt = f"Finished-\nRaw penups: {raw_penup_counter} Processed penups: {processed_penup_counter}"

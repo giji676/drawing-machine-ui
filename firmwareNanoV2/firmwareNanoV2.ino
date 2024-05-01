@@ -152,6 +152,10 @@ void setup ()
           continue;
         }
       }
+      else if (line.startsWith("PAUSE")) {
+        running = false;
+        continue;
+      }
 
       int commaIndex = line.indexOf(",");
 

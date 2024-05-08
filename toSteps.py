@@ -235,7 +235,7 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
             if hit_penup:
                 hit_penup = False
                 dist = math.sqrt((line[0] - last_pos[0])**2 + (line[1] - last_pos[1])**2)
-                if dist > min_dist_for_servo:
+                if (dist > min_dist_for_servo) or (line[0] == 0 or line[0] == max_x or line[1] == 0 or line[1] == max_y):
                     f.write("PENUP:45\n")
                     processed_penup_counter += 1
                     s_motor_current_offset, last_written_pos = writePos(line, f, s_motor_current_offset, last_written_pos)

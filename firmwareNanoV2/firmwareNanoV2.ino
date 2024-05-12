@@ -43,6 +43,10 @@ int numFiles = 0;
 
 bool running = false;
 
+unsigned long long startTime;
+unsigned long long totalActiveTime;
+unsigned long long pauseStartTime;
+
 void setup ()
 {
   Serial.begin(9600);
@@ -111,10 +115,16 @@ void setup ()
     }
     displayText("Run");
 
+    startTime = millis();
+
     while (file.available()) {
       if (!running) {
+        totalActiveTime += millis() - pauseStartTime;
+        startTime = millis();
         continue;
       }
+      unsigned long elapsedTime = millis() - startTime;
+      displayTime(elapsedTime + totalActiveTime);
 
       String line = file.readStringUntil('\n');
       line.trim();
@@ -243,6 +253,14 @@ void displayText(String text) {
   display.setTextColor(SH110X_WHITE);
   display.println(text);
 
+  display.display();
+}
+
+void displayTime(unsigned long t){
+  char buffer[20];
+  unsigned long minutes = t / 1000 / 60;
+  sprintf(buffer, "%lu", seconds);
+  display.println(buffer);
   display.display();
 }
 

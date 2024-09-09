@@ -108,6 +108,8 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
                 max_y = y
     f.close()
 
+    print(max_x, max_y)
+
     def remap(x, in_min, in_max, out_min, out_max):
         return (x - in_min) * (out_max - out_min) // (in_max - in_min) + out_min
 
@@ -165,8 +167,11 @@ def convertToSteps(settings, input_file, output_file, fit=False, min_pen_pickup=
             )
             + image_offset[1],
         ]
+        print(pos)
 
         values = calculate(pos)
+        print(values)
+        print()
 
         s_motor_current_offset = [
             round(s_motor_current_offset[0] + values[0]),

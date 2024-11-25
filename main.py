@@ -958,6 +958,7 @@ class ConfigureMachine(QWidget):
         # Otherwise loads default settings
         if not os.path.exists(SETTINGS):
             self.loadDefaultSettings()
+            self.saveSettings()
 
         with open(SETTINGS, "r") as settings_file:
             self.settings = json.load(settings_file)

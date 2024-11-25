@@ -9,3 +9,4 @@ __pycache__/
 *.txt
 *.gcode
 *.svg
+!requirements.txt

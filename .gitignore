@@ -4,6 +4,7 @@ generated_files/
 __pycache__/
 .venv/
 .python-version
+.comments/
 *.jpg
 *.png
 *.txt

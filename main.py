@@ -31,10 +31,10 @@ IMAGE_CYC = "image.cyc"
 OUTPUT_COORDINATES_TXT = "output_coordinates.txt"
 OUTPUT_STEPS_TXT = "path.txt"
 
-tsp_path = f"{GENERATED_FILES}\{IMAGE_TSP}"
-cyc_path = f"{GENERATED_FILES}\{IMAGE_CYC}"
-output_coordinates_path = f"{GENERATED_FILES}\{OUTPUT_COORDINATES_TXT}"
-output_steps_path = f"{GENERATED_FILES}\{OUTPUT_STEPS_TXT}"
+tsp_path = f"{GENERATED_FILES}/{IMAGE_TSP}"
+cyc_path = f"{GENERATED_FILES}/{IMAGE_CYC}"
+output_coordinates_path = f"{GENERATED_FILES}/{OUTPUT_COORDINATES_TXT}"
+output_steps_path = f"{GENERATED_FILES}/{OUTPUT_STEPS_TXT}"
 
 SETTINGS = "settings.json"
 
@@ -374,7 +374,6 @@ class ProcessCanvas(QWidget):
         super().__init__()
         self.setGeometry(100, 100, 400, 400)
         self.scale_factor = 1.0
-        self.scale_factor = 1.0
         self.setMouseTracking(True)
         self.dragging = False
         self.start_pos = QPoint()
@@ -400,6 +399,24 @@ class ProcessCanvas(QWidget):
         transform.translate(self.cur_pos.x(), self.cur_pos.y())
         painter.setTransform(transform)
         painter.drawPixmap(0, 0, QPixmap.fromImage(self.input_image))
+
+    def qimageToPil(self, qimage):
+        # Get image dimensions
+        width = qimage.width()
+        height = qimage.height()
+
+        # Convert QImage to a format suitable for PIL
+        qimage = qimage.convertToFormat(QImage.Format_RGBA8888)
+
+        # Get the binary data from QImage
+        ptr = qimage.constBits()
+        ptr.setsize(height * width * 4)  # 4 bytes per pixel (RGBA)
+
+        # Convert to numpy array and reshape
+        arr = np.frombuffer(ptr, np.uint8).reshape(height, width, 4)
+
+        # Convert numpy array to PIL Image
+        return Image.fromarray(arr)
 
     def quantizeGrayscaleImage(self) -> None:
         if self.input_image is None:
@@ -464,7 +481,8 @@ class ProcessCanvas(QWidget):
         if self.input_image is None:
             return
 
-        image = Image.fromqpixmap(self.input_image)
+        image = self.qimageToPil(self.input_image)
+        #image = Image.fromqpixmap(self.input_image)
         image = remove(image)
 
         jpg_image = Image.new("RGB", image.size, "white")
@@ -630,10 +648,12 @@ class ProcessImage(QWidget):
             self.worker_thread.function_type = FunctionTypeEnum.LINKERN
             self.worker_thread.start()
 
+
     def startWave(self):
         if self.image_canvas.input_image is None:
             return
-        image = Image.fromqpixmap(self.image_canvas.input_image).convert("L")
+        image = self.image_canvas.qimageToPil(self.image_canvas.input_image).convert("L")
+        #image = Image.fromqpixmap(self.image_canvas.input_image).convert("L")
         image = ImageOps.invert(image)
 
         self.worker_thread.function_type = FunctionTypeEnum.WAVE
@@ -641,10 +661,13 @@ class ProcessImage(QWidget):
         self.worker_thread.image = image
         self.worker_thread.start()
 
+
     def startDither(self):
         if self.image_canvas.input_image is None:
             return
-        image = Image.fromqpixmap(self.image_canvas.input_image).convert("L")
+
+        image = self.image_canvas.qimageToPil(self.image_canvas.input_image).convert("L")
+        #image = Image.fromqpixmap(self.image_canvas.input_image).convert("L")
         image = ImageOps.invert(image)
 
         self.worker_thread.function_type = FunctionTypeEnum.DITHER
@@ -681,6 +704,7 @@ class ProcessImage(QWidget):
 
     def clearAll(self) -> None:
         self.image_canvas.input_image = None
+        self.image_canvas.scale_factor = 1.0
         self.image_canvas.update()
         self.output_text_edit.clear()
 

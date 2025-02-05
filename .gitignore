@@ -3,8 +3,12 @@ generated_files/
 .\vscode
 __pycache__/
 .venv/
+.python-version
+.comments/
 *.jpg
 *.png
-*.txt
-*.gcode
+*.bmp
 *.svg
+*.gcode
+*.txt
+!requirements.txt

@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import (QApplication, QFileDialog, QGridLayout,
 from rembg import remove
 
 import dithering
-import gcodeConvertor
+#import gcodeConvertor
 import pathMaker
 import toSteps
 import svgParser
@@ -722,6 +722,7 @@ class ProcessImage(QWidget):
         self.image_canvas.update()
 
     def SVGToGCODE(self, path) -> None:
+        """
         # Turns SVG path to GCODE
         if gcodeConvertor.SVGToGCODE(path, output_coordinates_path) == 1:
             # Turnes the GCODE into normal image
@@ -733,6 +734,7 @@ class ProcessImage(QWidget):
                 data, image.size[0], image.size[1], QImage.Format_RGBA8888
             )
             self.image_canvas.update()
+            """
 
     def gcodePlotter(self) -> Image:
         f = open(output_coordinates_path, "r")
@@ -958,6 +960,7 @@ class ConfigureMachine(QWidget):
         # Otherwise loads default settings
         if not os.path.exists(SETTINGS):
             self.loadDefaultSettings()
+            self.saveSettings()
 
         with open(SETTINGS, "r") as settings_file:
             self.settings = json.load(settings_file)

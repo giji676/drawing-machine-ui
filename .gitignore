@@ -7,7 +7,8 @@ __pycache__/
 .comments/
 *.jpg
 *.png
-*.txt
-*.gcode
+*.bmp
 *.svg
+*.gcode
+*.txt
 !requirements.txt

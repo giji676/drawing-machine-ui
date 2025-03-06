@@ -15,26 +15,24 @@ from PyQt5.QtWidgets import (QApplication, QFileDialog, QGridLayout,
                              QTextEdit, QWidget, QCheckBox)
 from rembg import remove
 
-import dithering
-#import gcodeConvertor
-import pathMaker
-import toSteps
-import svgParser
+from src.image_processing import dithering, wave_smoother, wave_smoother_standalone
+from src.utils import path_maker, to_steps, svg_parser
+#from src.utils import gcode_convertor
 
-import waveSmoother
-import waveSmootherStandalone
 
 GENERATED_FILES = "generated_files"
+STYLE = os.path.normpath("src\style\style.qss")
+PATH_MAKER = os.path.normpath(f"external\\thepathmaker-x64\\linkern.exe")
 
 IMAGE_TSP = "image.tsp"
 IMAGE_CYC = "image.cyc"
 OUTPUT_COORDINATES_TXT = "output_coordinates.txt"
 OUTPUT_STEPS_TXT = "path.txt"
 
-tsp_path = f"{GENERATED_FILES}/{IMAGE_TSP}"
-cyc_path = f"{GENERATED_FILES}/{IMAGE_CYC}"
-output_coordinates_path = f"{GENERATED_FILES}/{OUTPUT_COORDINATES_TXT}"
-output_steps_path = f"{GENERATED_FILES}/{OUTPUT_STEPS_TXT}"
+tsp_path = os.path.join(GENERATED_FILES, IMAGE_TSP)
+cyc_path = os.path.join(GENERATED_FILES, IMAGE_CYC)
+output_coordinates_path = os.path.join(GENERATED_FILES, OUTPUT_COORDINATES_TXT)
+output_steps_path = os.path.join(GENERATED_FILES, OUTPUT_STEPS_TXT)
 
 SETTINGS = "settings.json"
 
@@ -106,11 +104,11 @@ class WorkerThread(QThread):
         height, width = pixels.shape
 
         if self.wave_smooth:
-            wave_function_arr = waveSmoother.genWave(
+            wave_function_arr = wave_smoother.genWave(
                 pixels
             )
 
-            processed_wave = waveSmootherStandalone.process(wave_function_arr)
+            processed_wave = wave_smoother_standalone.process(wave_function_arr)
             processed_height, processed_width = len(processed_wave) * pixel_wave_size, len(
                 processed_wave[0]
             )
@@ -203,7 +201,8 @@ class WorkerThread(QThread):
 
     def linkern(self) -> None:
         # Runs the linkern.exe program
-        linker_command = f"thepathmaker-x64\linkern.exe -o {cyc_path} {tsp_path}"
+        linker_command = f"{PATH_MAKER} -o {cyc_path} {tsp_path}"
+        print(linker_command)
         linker_result = subprocess.Popen(
             linker_command,
             stdout=subprocess.PIPE,
@@ -455,7 +454,7 @@ class ProcessCanvas(QWidget):
 
         if linker_result.returncode == 0:
 
-            image = pathMaker.pathMaker(
+            image = path_maker.pathMaker(
                 tsp_path, cyc_path, output_coordinates_path)
 
             image = image.convert("RGBA")
@@ -470,7 +469,7 @@ class ProcessCanvas(QWidget):
         # Converts the coordinates of the points to steps of the stepper motor based on the <settings>
         if not os.path.exists(output_coordinates_path):
             return
-        steps_output = toSteps.convertToSteps(
+        steps_output = to_steps.convertToSteps(
             settings, output_coordinates_path, output_steps_path, fit=True, min_pen_pickup=self.process_image_window.cbx_min_pen_pickup.isChecked()
         )
         if steps_output:
@@ -733,7 +732,7 @@ class ProcessImage(QWidget):
         self.image_canvas.loadImage(self.input_image)
 
     def parseSvg(self, path) -> None:
-        image = svgParser.parseSvg(path, self.updateOutput)
+        image = svg_parser.parseSvg(path, self.updateOutput)
         if image == None:
             return
 
@@ -748,7 +747,7 @@ class ProcessImage(QWidget):
     def SVGToGCODE(self, path) -> None:
         """
         # Turns SVG path to GCODE
-        if gcodeConvertor.SVGToGCODE(path, output_coordinates_path) == 1:
+        if gcode_convertor.SVGToGCODE(path, output_coordinates_path) == 1:
             # Turnes the GCODE into normal image
             image = self.gcodePlotter()
             image = image.convert("RGBA")
@@ -1011,7 +1010,7 @@ if __name__ == "__main__":
         os.makedirs(GENERATED_FILES)
 
     app = QApplication(sys.argv)
-    qss = "style.qss"
+    qss = STYLE
     with open(qss, "r") as ss:
         app.setStyleSheet(ss.read())
     window = MyWindow()

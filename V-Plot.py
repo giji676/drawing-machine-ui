@@ -16,39 +16,8 @@ from PyQt5.QtWidgets import (QApplication, QFileDialog, QGridLayout,
 from rembg import remove
 
 from src.image_processing import dithering, wave_smoother, wave_smoother_standalone
-from src.utils import path_maker, to_steps, svg_parser
+from src.utils import constants, path_maker, to_steps, svg_parser
 #from src.utils import gcode_convertor
-
-
-GENERATED_FILES = "generated_files"
-STYLE = os.path.normpath("src\style\style.qss")
-PATH_MAKER = os.path.normpath(f"external\\thepathmaker-x64\\linkern.exe")
-
-IMAGE_TSP = "image.tsp"
-IMAGE_CYC = "image.cyc"
-OUTPUT_COORDINATES_TXT = "output_coordinates.txt"
-OUTPUT_STEPS_TXT = "path.txt"
-
-tsp_path = os.path.join(GENERATED_FILES, IMAGE_TSP)
-cyc_path = os.path.join(GENERATED_FILES, IMAGE_CYC)
-output_coordinates_path = os.path.join(GENERATED_FILES, OUTPUT_COORDINATES_TXT)
-output_steps_path = os.path.join(GENERATED_FILES, OUTPUT_STEPS_TXT)
-
-SETTINGS = "settings.json"
-
-# Used only for displaying the machine on the canvas, doesn't affect coordinates
-IMAGE_OFFSET = (100, 100)
-
-DEFAULT_SETTINGS = {
-    "beltToothDistance": 2,
-    "toothOngear": 20,
-    "stepsPerRev": 3200,
-    "motorDir": [1, -1],
-    "distanceBetweenMotors": 580,
-    "startDistance": [590, 590],
-    "paperSize": [190, 270],
-    "paperOffset": 35,
-}
 
 settings = None
 
@@ -89,7 +58,7 @@ class WorkerThread(QThread):
         if not image:
             return None
 
-        f = open(output_coordinates_path, "w")
+        f = open(constants.OUTPUT_COODINATES_PATH, "w")
 
         self.update_signal.emit("Starting conversion to wave")
         start_time = time.time()
@@ -201,7 +170,7 @@ class WorkerThread(QThread):
 
     def linkern(self) -> None:
         # Runs the linkern.exe program
-        linker_command = f"{PATH_MAKER} -o {cyc_path} {tsp_path}"
+        linker_command = f"{constants.PATH_MAKER} -o {constants.CYC_PATH} {constants.TSP_PATH}"
         print(linker_command)
         linker_result = subprocess.Popen(
             linker_command,
@@ -225,7 +194,7 @@ class WorkerThread(QThread):
     def dither(self, image) -> Image:
         start_time = time.time()
         self.update_signal.emit("Starting dithering")
-        image = dithering.applyDithering(image, tsp_path)
+        image = dithering.applyDithering(image, constants.TSP_PATH)
         self.result = f"\nTotal run time: {time.time() - start_time} seconds\n"
         self.finish_signal.emit()
         return image
@@ -265,14 +234,14 @@ class ConfigurationCanvas(QWidget):
         self.m2 = [self.m1[0] + self.settings["distanceBetweenMotors"], 0]
 
         painter.drawEllipse(
-            int(self.m1[0] - self.motor_ellipse_dia / 2) + IMAGE_OFFSET[0],
-            self.m1[1] + IMAGE_OFFSET[1],
+            int(self.m1[0] - self.motor_ellipse_dia / 2) + constants.IMAGE_OFFSET[0],
+            self.m1[1] + constants.IMAGE_OFFSET[1],
             self.motor_ellipse_dia,
             self.motor_ellipse_dia,
         )
         painter.drawEllipse(
-            int(self.m2[0] - self.motor_ellipse_dia / 2) + IMAGE_OFFSET[0],
-            self.m2[1] + IMAGE_OFFSET[1],
+            int(self.m2[0] - self.motor_ellipse_dia / 2) + constants.IMAGE_OFFSET[0],
+            self.m2[1] + constants.IMAGE_OFFSET[1],
             self.motor_ellipse_dia,
             self.motor_ellipse_dia,
         )
@@ -311,29 +280,29 @@ class ConfigurationCanvas(QWidget):
             ]
 
         painter.drawLine(
-            int(self.m1[0] + self.motor_ellipse_dia / 2 + IMAGE_OFFSET[0]),
-            int(self.m1[1] + self.motor_ellipse_dia / 2 + IMAGE_OFFSET[1]),
-            pen_pos_calculated[0] + IMAGE_OFFSET[0],
-            pen_pos_calculated[1] + IMAGE_OFFSET[1],
+            int(self.m1[0] + self.motor_ellipse_dia / 2 + constants.IMAGE_OFFSET[0]),
+            int(self.m1[1] + self.motor_ellipse_dia / 2 + constants.IMAGE_OFFSET[1]),
+            pen_pos_calculated[0] + constants.IMAGE_OFFSET[0],
+            pen_pos_calculated[1] + constants.IMAGE_OFFSET[1],
         )
         painter.drawLine(
-            int(self.m2[0] - self.motor_ellipse_dia / 2 + IMAGE_OFFSET[0]),
-            int(self.m2[1] + self.motor_ellipse_dia / 2 + IMAGE_OFFSET[1]),
-            pen_pos_calculated[0] + IMAGE_OFFSET[0],
-            pen_pos_calculated[1] + IMAGE_OFFSET[1],
+            int(self.m2[0] - self.motor_ellipse_dia / 2 + constants.IMAGE_OFFSET[0]),
+            int(self.m2[1] + self.motor_ellipse_dia / 2 + constants.IMAGE_OFFSET[1]),
+            pen_pos_calculated[0] + constants.IMAGE_OFFSET[0],
+            pen_pos_calculated[1] + constants.IMAGE_OFFSET[1],
         )
 
         painter.drawEllipse(
             int(pen_pos_calculated[0] -
-                self.pen_ellipse_dia / 2) + IMAGE_OFFSET[0],
-            pen_pos_calculated[1] + IMAGE_OFFSET[1],
+                self.pen_ellipse_dia / 2) + constants.IMAGE_OFFSET[0],
+            pen_pos_calculated[1] + constants.IMAGE_OFFSET[1],
             self.pen_ellipse_dia,
             self.pen_ellipse_dia,
         )
 
         painter.drawRect(
-            paper_offset_calculated[0] + IMAGE_OFFSET[0],
-            paper_offset_calculated[1] + IMAGE_OFFSET[1],
+            paper_offset_calculated[0] + constants.IMAGE_OFFSET[0],
+            paper_offset_calculated[1] + constants.IMAGE_OFFSET[1],
             self.settings["paperSize"][0],
             self.settings["paperSize"][1],
         )
@@ -455,7 +424,7 @@ class ProcessCanvas(QWidget):
         if linker_result.returncode == 0:
 
             image = path_maker.pathMaker(
-                tsp_path, cyc_path, output_coordinates_path)
+                constants.TSP_PATH, constants.CYC_PATH, constants.OUTPUT_COODINATES_PATH)
 
             image = image.convert("RGBA")
             data = image.tobytes("raw", "RGBA")
@@ -467,10 +436,10 @@ class ProcessCanvas(QWidget):
 
     def convertToSteps(self) -> None:
         # Converts the coordinates of the points to steps of the stepper motor based on the <settings>
-        if not os.path.exists(output_coordinates_path):
+        if not os.path.exists(constants.OUTPUT_COODINATES_PATH):
             return
         steps_output = to_steps.convertToSteps(
-            settings, output_coordinates_path, output_steps_path, fit=True, min_pen_pickup=self.process_image_window.cbx_min_pen_pickup.isChecked()
+            settings, constants.OUTPUT_COODINATES_PATH, constants.OUTPUT_STEPS_PATH, fit=True, min_pen_pickup=self.process_image_window.cbx_min_pen_pickup.isChecked()
         )
         if steps_output:
             self.process_image_window.updateOutput(steps_output)
@@ -643,7 +612,7 @@ class ProcessImage(QWidget):
         self.setLayout(self.lyt_process_image_tab)
 
     def startLinkern(self):
-        if os.path.exists(tsp_path):
+        if os.path.exists(constants.TSP_PATH):
             self.worker_thread.function_type = FunctionTypeEnum.LINKERN
             self.worker_thread.start()
 
@@ -747,7 +716,7 @@ class ProcessImage(QWidget):
     def SVGToGCODE(self, path) -> None:
         """
         # Turns SVG path to GCODE
-        if gcode_convertor.SVGToGCODE(path, output_coordinates_path) == 1:
+        if gcode_convertor.SVGToGCODE(path, constants.OUTPUT_COODINATES_PATH) == 1:
             # Turnes the GCODE into normal image
             image = self.gcodePlotter()
             image = image.convert("RGBA")
@@ -760,7 +729,7 @@ class ProcessImage(QWidget):
             """
 
     def gcodePlotter(self) -> Image:
-        f = open(output_coordinates_path, "r")
+        f = open(constants.OUTPUT_COODINATES_PATH, "r")
         max_x, max_y = 0, 0
 
         # Find max x and y
@@ -787,7 +756,7 @@ class ProcessImage(QWidget):
         pen_down = False
         flipped_image = []
 
-        f = open(output_coordinates_path, "r")
+        f = open(constants.OUTPUT_COODINATES_PATH, "r")
 
         # Flip the image horizontaly and draw the image
         for line in f:
@@ -811,7 +780,7 @@ class ProcessImage(QWidget):
                 x, y = n_x, n_y
 
         f.close()
-        f = open(output_coordinates_path, "w")
+        f = open(constants.OUTPUT_COODINATES_PATH, "w")
         f.writelines(flipped_image)
         f.close()
 
@@ -830,7 +799,7 @@ class ConfigureMachine(QWidget):
 
         self.right_canvas = ConfigurationCanvas()
 
-        self.settings = DEFAULT_SETTINGS.copy()
+        self.settings = constants.DEFAULT_SETTINGS.copy()
         global settings
         settings = self.settings
 
@@ -966,7 +935,7 @@ class ConfigureMachine(QWidget):
 
     def loadDefaultSettings(self) -> None:
 
-        self.setValuesInput(DEFAULT_SETTINGS.copy())
+        self.setValuesInput(constants.DEFAULT_SETTINGS.copy())
         self.processSettings()
         self.right_canvas.setSettings(self.settings)
         self.right_canvas.update()
@@ -975,17 +944,17 @@ class ConfigureMachine(QWidget):
 
     def saveSettings(self) -> None:
         # Saves settings to <SETTINGS> file
-        with open(SETTINGS, "w") as settings_file:
+        with open(constants.SETTINGS, "w") as settings_file:
             json.dump(self.settings, settings_file)
 
     def loadSettings(self) -> None:
         # Loads settings if the <SETTINGS> file exists
         # Otherwise loads default settings
-        if not os.path.exists(SETTINGS):
+        if not os.path.exists(constants.SETTINGS):
             self.loadDefaultSettings()
             self.saveSettings()
 
-        with open(SETTINGS, "r") as settings_file:
+        with open(constants.SETTINGS, "r") as settings_file:
             self.settings = json.load(settings_file)
             global settings
             settings = self.settings
@@ -1006,11 +975,11 @@ class MyWindow(QMainWindow):
 
 
 if __name__ == "__main__":
-    if not os.path.exists(GENERATED_FILES):
-        os.makedirs(GENERATED_FILES)
+    if not os.path.exists(constants.GENERATED_FILES):
+        os.makedirs(constants.GENERATED_FILES)
 
     app = QApplication(sys.argv)
-    qss = STYLE
+    qss = constants.STYLE
     with open(qss, "r") as ss:
         app.setStyleSheet(ss.read())
     window = MyWindow()

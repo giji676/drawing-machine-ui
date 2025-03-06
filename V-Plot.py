@@ -16,17 +16,10 @@ from PyQt5.QtWidgets import (QApplication, QFileDialog, QGridLayout,
 from rembg import remove
 
 from src.image_processing import dithering, wave_smoother, wave_smoother_standalone
-from src.utils import constants, path_maker, to_steps, svg_parser
+from src.utils import constants, path_maker, to_steps, svg_parser, FunctionTypeEnum
 #from src.utils import gcode_convertor
 
 settings = None
-
-
-class FunctionTypeEnum:
-    WAVE = 1
-    LINKERN = 2
-    DITHER = 3
-
 
 class WorkerThread(QThread):
     # Runs lengthy functions on a separate "worker thread" so the gui doesn't freeze
@@ -171,7 +164,6 @@ class WorkerThread(QThread):
     def linkern(self) -> None:
         # Runs the linkern.exe program
         linker_command = f"{constants.PATH_MAKER} -o {constants.CYC_PATH} {constants.TSP_PATH}"
-        print(linker_command)
         linker_result = subprocess.Popen(
             linker_command,
             stdout=subprocess.PIPE,

@@ -1,10 +1,10 @@
 import os
 
 from PIL import Image, ImageDraw, ImageOps
-from PyQt5.QtGui import QColor, QImage, QPainter, QPen, QPixmap, QTransform
-from PyQt5.QtWidgets import (QApplication, QFileDialog, QGridLayout,
-                             QHBoxLayout, QLabel, QLineEdit, QMainWindow,
-                             QPushButton, QSizePolicy, QSpacerItem, QTabWidget,
+from PyQt5.QtGui import QImage
+from PyQt5.QtWidgets import (QFileDialog, QGridLayout,
+                             QHBoxLayout, QLabel, QLineEdit,
+                             QPushButton, QSizePolicy, QSpacerItem,
                              QTextEdit, QWidget, QCheckBox)
 
 from src.utils import constants, svg_parser, FunctionTypeEnum, WorkerThread

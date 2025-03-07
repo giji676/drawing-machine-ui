@@ -1,23 +1,10 @@
-import json
-import math
 import os
-import subprocess
 import sys
-import time
 
-import numpy as np
-from PIL import Image, ImageDraw, ImageOps
-from PyQt5.QtCore import QPoint, Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QColor, QImage, QPainter, QPen, QPixmap, QTransform
-from PyQt5.QtWidgets import (QApplication, QFileDialog, QGridLayout,
-                             QHBoxLayout, QLabel, QLineEdit, QMainWindow,
-                             QPushButton, QSizePolicy, QSpacerItem, QTabWidget,
-                             QTextEdit, QWidget, QCheckBox)
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget
 
-from src.image_processing import dithering, wave_smoother, wave_smoother_standalone
-from src.utils import constants, path_maker, to_steps, svg_parser, FunctionTypeEnum, WorkerThread
-from src.window import ConfigurationCanvas, ProcessCanvas, ProcessImage, ConfigureMachine
-#from src.utils import gcode_convertor
+from src.utils import constants
+from src.window import ProcessImage, ConfigureMachine
 
 settings = None
 

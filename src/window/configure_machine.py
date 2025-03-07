@@ -1,12 +1,8 @@
 import json
 import os
 
-from PIL import Image, ImageDraw, ImageOps
-from PyQt5.QtGui import QColor, QImage, QPainter, QPen, QPixmap, QTransform
-from PyQt5.QtWidgets import (QApplication, QFileDialog, QGridLayout,
-                             QHBoxLayout, QLabel, QLineEdit, QMainWindow,
-                             QPushButton, QSizePolicy, QSpacerItem, QTabWidget,
-                             QTextEdit, QWidget, QCheckBox)
+from PyQt5.QtWidgets import (QGridLayout, QHBoxLayout, QLabel, QLineEdit,
+                             QPushButton, QSizePolicy, QSpacerItem, QWidget)
 
 from src.utils import constants
 from .configuration_canvas import ConfigurationCanvas

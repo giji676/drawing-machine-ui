@@ -1,19 +1,14 @@
 import os
-import math
 import subprocess
 import numpy as np
 from rembg import remove
 
-from PIL import Image, ImageDraw, ImageOps
-from PyQt5.QtCore import QPoint, Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QColor, QImage, QPainter, QPen, QPixmap, QTransform
-from PyQt5.QtWidgets import (QApplication, QFileDialog, QGridLayout,
-                             QHBoxLayout, QLabel, QLineEdit, QMainWindow,
-                             QPushButton, QSizePolicy, QSpacerItem, QTabWidget,
-                             QTextEdit, QWidget, QCheckBox)
+from PIL import Image
+from PyQt5.QtCore import QPoint, Qt
+from PyQt5.QtGui import QColor, QImage, QPainter, QPixmap, QTransform
+from PyQt5.QtWidgets import QWidget
 
-from src.image_processing import dithering, wave_smoother, wave_smoother_standalone
-from src.utils import constants, path_maker, to_steps, svg_parser, FunctionTypeEnum, WorkerThread
+from src.utils import constants, path_maker, to_steps
 
 
 # Canvas that displays the image being processed

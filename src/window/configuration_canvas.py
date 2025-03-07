@@ -1,11 +1,8 @@
 import math
 
-from PyQt5.QtCore import QPoint, Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QColor, QImage, QPainter, QPen, QPixmap, QTransform
-from PyQt5.QtWidgets import (QApplication, QFileDialog, QGridLayout,
-                             QHBoxLayout, QLabel, QLineEdit, QMainWindow,
-                             QPushButton, QSizePolicy, QSpacerItem, QTabWidget,
-                             QTextEdit, QWidget, QCheckBox)
+from PyQt5.QtCore import QPoint, Qt
+from PyQt5.QtGui import QPainter, QPen, QTransform
+from PyQt5.QtWidgets import QWidget
 
 from src.utils import constants
 

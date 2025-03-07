@@ -20,8 +20,6 @@ class ConfigureMachine(QWidget):
         self.right_canvas = ConfigurationCanvas()
 
         self.settings = constants.DEFAULT_SETTINGS.copy()
-        global settings
-        settings = self.settings
 
         # Creating the lables and inputs
         self.lbl_belt_tooth_distance = QLabel("Belt tooth distance")
@@ -133,8 +131,6 @@ class ConfigureMachine(QWidget):
 
         self.right_canvas.setSettings(self.settings)
         self.right_canvas.update()
-        global settings
-        settings = self.settings
 
     def setValuesInput(self, vals: dict) -> None:
         # Sets the input fields to the <vals> values
@@ -154,13 +150,10 @@ class ConfigureMachine(QWidget):
         self.txt_paper_offset.setText(str(vals["paperOffset"]))
 
     def loadDefaultSettings(self) -> None:
-
         self.setValuesInput(constants.DEFAULT_SETTINGS.copy())
         self.processSettings()
         self.right_canvas.setSettings(self.settings)
         self.right_canvas.update()
-        global settings
-        settings = self.settings
 
     def saveSettings(self) -> None:
         # Saves settings to <SETTINGS> file
@@ -175,6 +168,6 @@ class ConfigureMachine(QWidget):
             self.saveSettings()
 
         with open(constants.SETTINGS, "r") as settings_file:
+            self.right_canvas.setSettings(self.settings)
             self.settings = json.load(settings_file)
-            global settings
-            settings = self.settings
+            self.right_canvas.update()

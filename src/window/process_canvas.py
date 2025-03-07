@@ -25,6 +25,7 @@ class ProcessCanvas(QWidget):
         self.delta = QPoint()
 
         self.process_image_window = None
+        self.settings = None
 
         self.image_scale = 1
 
@@ -114,7 +115,7 @@ class ProcessCanvas(QWidget):
         if not os.path.exists(constants.OUTPUT_COODINATES_PATH):
             return
         steps_output = to_steps.convertToSteps(
-            settings, constants.OUTPUT_COODINATES_PATH, constants.OUTPUT_STEPS_PATH, fit=True, min_pen_pickup=self.process_image_window.cbx_min_pen_pickup.isChecked()
+            self.settings, constants.OUTPUT_COODINATES_PATH, constants.OUTPUT_STEPS_PATH, fit=True, min_pen_pickup=self.process_image_window.cbx_min_pen_pickup.isChecked()
         )
         if steps_output:
             self.process_image_window.updateOutput(steps_output)

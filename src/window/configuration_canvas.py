@@ -6,7 +6,6 @@ from PyQt5.QtWidgets import QWidget
 
 from src.utils import constants
 
-# TODO: change the global settings usage
 
 # Canvas that displays the machine configuration
 class ConfigurationCanvas(QWidget):
@@ -112,10 +111,8 @@ class ConfigurationCanvas(QWidget):
             self.settings["paperSize"][1],
         )
 
-    def setSettings(self, settings_: dict):
-        self.settings = settings_
-        global settings
-        settings = self.settings
+    def setSettings(self, settings: dict):
+        self.settings = settings
 
     # Mouse events for moving the image around and zooming in
     def wheelEvent(self, event):

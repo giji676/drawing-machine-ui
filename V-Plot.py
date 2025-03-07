@@ -7,8 +7,6 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QSplashScreen
 from src.utils import constants
 from src.window import ProcessImage, ConfigureMachine
 
-settings = None
-
 
 class MyWindow(QMainWindow):
     def __init__(self):
@@ -18,6 +16,8 @@ class MyWindow(QMainWindow):
         self.tab_configure_machine = ConfigureMachine()
         self.tab_process_image = ProcessImage()
 
+        self.tab_process_image.image_canvas.settings = self.tab_configure_machine.settings
+
         tab_widget.addTab(self.tab_process_image, "Process Image")
         tab_widget.addTab(self.tab_configure_machine, "Configure Machine")
 
@@ -25,7 +25,6 @@ class MyWindow(QMainWindow):
 
 
 if __name__ == "__main__":
-
     app = QApplication(sys.argv)
     splash = QSplashScreen()
     splash.setPixmap(QPixmap(constants.ICON_PATH))

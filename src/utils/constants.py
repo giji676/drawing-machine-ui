@@ -1,8 +1,22 @@
+import sys
 import os
 
 GENERATED_FILES = "generated_files"
-STYLE = os.path.normpath("src\\style\\style.qss")
-PATH_MAKER = os.path.normpath("external\\thepathmaker-x64\\linkern.exe")
+
+if getattr(sys, 'frozen', False):
+    # Running in a bundled app
+    qss_path = os.path.join(sys._MEIPASS, "styles", "style.qss")
+    icon_path = os.path.join(sys._MEIPASS, "resources", "icon.ico")
+    path_maker = os.path.join(sys._MEIPASS, "resources", "thepathmaker-x64", "linkern.exe")
+else:
+    # Running from source
+    qss_path = "src\\style\\style.qss"
+    icon_path = "external\\icon.ico"
+    path_maker = "external\\thepathmaker-x64\\linkern.exe"
+
+STYLE_PATH = os.path.normpath(qss_path)
+ICON_PATH = os.path.normpath(icon_path)
+PATH_MAKER = os.path.normpath(path_maker)
 
 IMAGE_TSP = "image.tsp"
 IMAGE_CYC = "image.cyc"

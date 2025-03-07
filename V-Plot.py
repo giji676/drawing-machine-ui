@@ -1,6 +1,7 @@
 import os
 import sys
 
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget
 
 from src.utils import constants
@@ -28,9 +29,9 @@ if __name__ == "__main__":
         os.makedirs(constants.GENERATED_FILES)
 
     app = QApplication(sys.argv)
-    qss = constants.STYLE
-    with open(qss, "r") as ss:
+    with open(constants.STYLE_PATH, "r") as ss:
         app.setStyleSheet(ss.read())
     window = MyWindow()
+    window.setWindowIcon(QIcon(constants.ICON_PATH))
     window.showMaximized()
     sys.exit(app.exec_())

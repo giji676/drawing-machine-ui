@@ -1,8 +1,8 @@
 import os
 import sys
 
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget
+from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QSplashScreen
 
 from src.utils import constants
 from src.window import ProcessImage, ConfigureMachine
@@ -25,13 +25,20 @@ class MyWindow(QMainWindow):
 
 
 if __name__ == "__main__":
+
+    app = QApplication(sys.argv)
+    splash = QSplashScreen()
+    splash.setPixmap(QPixmap(constants.ICON_PATH))
+    splash.show()
+
+    with open(constants.STYLE_PATH, "r") as ss:
+        app.setStyleSheet(ss.read())
+
     if not os.path.exists(constants.GENERATED_FILES):
         os.makedirs(constants.GENERATED_FILES)
 
-    app = QApplication(sys.argv)
-    with open(constants.STYLE_PATH, "r") as ss:
-        app.setStyleSheet(ss.read())
     window = MyWindow()
+    splash.close()
     window.setWindowIcon(QIcon(constants.ICON_PATH))
     window.showMaximized()
     sys.exit(app.exec_())

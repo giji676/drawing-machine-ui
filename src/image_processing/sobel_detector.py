@@ -1,7 +1,7 @@
-from PIL import Image, ImageDraw
-import numpy as np
 import math
+import numpy as np
 import colorsys
+from PIL import Image, ImageDraw
 
 Gx = [[-1, 0, 1],
       [-2, 0, 2],

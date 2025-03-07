@@ -1,6 +1,4 @@
-import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.widgets import Slider
 
 fEnd, gStart = (
     1 * 20,

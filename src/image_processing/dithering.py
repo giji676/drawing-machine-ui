@@ -1,6 +1,5 @@
 import numpy as np
 from PIL import Image, ImageOps
-from rembg import remove
 
 
 def applyDithering(image, tsp_path):

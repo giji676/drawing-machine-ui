@@ -1,7 +1,8 @@
 import os
+import time
 import subprocess
 import numpy as np
-from rembg import remove
+from rembg import remove, new_session
 
 from PIL import Image
 from PyQt5.QtCore import QPoint, Qt
@@ -120,14 +121,33 @@ class ProcessCanvas(QWidget):
         if steps_output:
             self.process_image_window.updateOutput(steps_output)
 
+    def qpixmapToImage2(self, qimage) -> Image:
+        # Convert QImage to numpy array (raw data)
+        width = qimage.width()
+        height = qimage.height()
+
+        # Extract the pixel data from QImage
+        ptr = qimage.bits()
+        ptr.setsize(qimage.byteCount())
+
+        # Create a numpy array from the QImage data
+        arr = np.array(ptr).reshape((height, width, 4))  # 4 channels (RGBA)
+        arr = arr[..., [2, 1, 0, 3]]  # Swap the Blue and Red channels
+
+        # Convert numpy array to PIL Image
+        pil_image = Image.fromarray(arr, 'RGBA')
+
+        return pil_image
+
     def removeBg(self) -> None:
         # Removes the background of the image, and replaces it with white background instead of transparent
         if self.input_image is None:
             return
 
-        image = self.qimageToPil(self.input_image)
-        #image = Image.fromqpixmap(self.input_image)
-        image = remove(image)
+        image = self.qpixmapToImage2(self.input_image)
+
+        session = new_session("u2net_lite", providers=["CPUExecutionProvider"])
+        image = remove(image, session=session)
 
         jpg_image = Image.new("RGB", image.size, "white")
         jpg_image.paste(image, (0, 0), image)

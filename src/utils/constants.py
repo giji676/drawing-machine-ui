@@ -7,15 +7,18 @@ if getattr(sys, 'frozen', False):
     # Running in a bundled app
     qss_path = os.path.join(sys._MEIPASS, "styles", "style.qss")
     icon_path = os.path.join(sys._MEIPASS, "resources", "icon.ico")
+    splash_path = os.path.join(sys._MEIPASS, "resources", "splash.png")
     path_maker = os.path.join(sys._MEIPASS, "resources", "thepathmaker-x64", "linkern.exe")
 else:
     # Running from source
     qss_path = "src\\style\\style.qss"
     icon_path = "external\\icon.ico"
+    splash_path = "external\\splash.png"
     path_maker = "external\\thepathmaker-x64\\linkern.exe"
 
 STYLE_PATH = os.path.normpath(qss_path)
 ICON_PATH = os.path.normpath(icon_path)
+SPLASH_PATH = os.path.normpath(splash_path)
 PATH_MAKER = os.path.normpath(path_maker)
 
 IMAGE_TSP = "image.tsp"

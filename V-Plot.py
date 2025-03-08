@@ -1,4 +1,5 @@
 import os
+import time
 import sys
 
 from PyQt5.QtGui import QIcon, QPixmap
@@ -27,7 +28,7 @@ class MyWindow(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     splash = QSplashScreen()
-    splash.setPixmap(QPixmap(constants.ICON_PATH))
+    splash.setPixmap(QPixmap(constants.SPLASH_PATH).scaled(400, 400))
     splash.show()
 
     with open(constants.STYLE_PATH, "r") as ss:
@@ -38,6 +39,9 @@ if __name__ == "__main__":
 
     window = MyWindow()
     splash.close()
+
     window.setWindowIcon(QIcon(constants.ICON_PATH))
+    window.setWindowTitle("V-Plot")
     window.showMaximized()
+
     sys.exit(app.exec_())
